@@ -3,6 +3,7 @@ __constant float color_ratio       = 0.036667;
 __constant float gradient_ratio    = 0.89;
 __constant float max_color_cost    = 21.0;
 __constant float max_gradient_cost = 2.0;
+__constant int   dvalue = 60;
 
 __kernel void matching_cost(__global const uchar* l_b, __global const uchar* l_g,  __global const uchar *l_r, __global const float *l_gradient, 
 							__global const uchar* r_b, __global const uchar* r_g,  __global const uchar *r_r, __global const float *r_gradient, 
@@ -13,10 +14,10 @@ __kernel void matching_cost(__global const uchar* l_b, __global const uchar* l_g
 
 	int idx = get_global_id(0);
 	int x = idx % 450;
-	int resultIdx = idx * 60;
+	int resultIdx = idx * dvalue;
 	int maxD = 450 - x;
-	if( maxD > 60 ){
-		maxD = 60;
+	if( maxD > dvalue ){
+		maxD = dvalue;
 	}
 
 	for(int d = 0 ; d < maxD ; d++){
@@ -31,11 +32,16 @@ __kernel void matching_cost(__global const uchar* l_b, __global const uchar* l_g
 
 		result[resultIdx+d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
 	}
-	for(int d = maxD ; d < 60 ; d++){
+	for(int d=maxD ; d<dvalue ; d++){
 		result[resultIdx+d] = 2.55;
 	}
 }
 
+__kernel void adder(__global const int* a, __global const int* b, __global int* result)
+{
+	int idx = get_global_id(0);
+	result[idx] = a[idx] + b[idx];
+}
 
 /*
 __constant float color_ratio       = 0.036667;

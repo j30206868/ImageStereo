@@ -34,6 +34,13 @@ template <class T>T **new_2d_arr(int rows, int cols, T init_value){
 	}
 	return arr;
 }
+template <class T>T *new_1d_arr(int len, T initV){
+	T *arr = new T[len];
+	for(int i=0; i<len; i++){
+		arr[i] = initV;
+	}
+	return arr;
+}
 template <class T>T **new_2d_arr(int rows, int cols){
 	T **arr = new T*[rows];
 	for(int i=0; i<rows; i++){
