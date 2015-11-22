@@ -12,21 +12,21 @@
 
 #include <time.h>
 
-#define IntensityLimit 256
-#define disparityLevel 40
+#define IntensityLimit 1024
+#define disparityLevel 60
 
 struct cl_match_elem{
-	int *rgb;
+	short *rgb;
 	float *gradient;
 	int node_c;
-	cl_match_elem(int _node_c, int *_rgb, float *_gradient){
+	cl_match_elem(int _node_c, short *_rgb, float *_gradient){
 		this->node_c = _node_c;
 		this->rgb      = _rgb;
 		this->gradient = _gradient;
 	}
 	cl_match_elem(int _node_c){
 		this->node_c = _node_c;
-		this->rgb      = new int[node_c];
+		this->rgb      = new short[node_c];
 		this->gradient = new float[node_c];
 	}
 };
@@ -102,6 +102,8 @@ float *readMatchCostFromFile(std::string fname, int h, int w, int max_disparity,
 void readDisparityFromFile(std::string fname, int h, int w, cv::Mat &dMap);
 
 int *c3_mat_to_1d_int_arr(cv::Mat img, int h, int w);
+short *lips_c1_mat_to_1d_int_arr(cv::Mat img, int h, int w);
+
 template<class T>
 T **map_1d_arr_to_2d_arr(T *arr, int h, int w){
 	T **arr_2d = new T*[h];

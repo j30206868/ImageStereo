@@ -173,6 +173,18 @@ int *c3_mat_to_1d_int_arr(cv::Mat img, int h, int w){
 	
 	return arr;
 }
+short *lips_c1_mat_to_1d_int_arr(cv::Mat img, int h, int w){
+	short *arr = new short [h*w];
+	int idx = 0;
+	for(int y=0; y<h ; y++)
+	for(int x=0; x<w ; x++)
+	{
+		arr[idx] = img.at<short>(y, x);
+		idx++;
+	}
+	
+	return arr;
+}
 
 uchar **int_2d_arr_to_gray_arr(int **color_arr, int h, int w){
 	uchar **arr = new_2d_arr<uchar>(h, w);

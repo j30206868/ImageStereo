@@ -18,34 +18,35 @@
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_mst.h"
 
-//const char* LeftIMGName  = "face/face1.png"; 
-//const char* RightIMGName = "face/face2.png";
-const char* LeftIMGName  = "dolls/dolls1.png"; 
-const char* RightIMGName = "dolls/dolls2.png";
+const char* LeftIMGName  = "face/face1.png"; 
+const char* RightIMGName = "face/face2.png";
+//const char* LeftIMGName  = "dolls/dolls1.png"; 
+//const char* RightIMGName = "dolls/dolls2.png";
 
-void compute_gradient(float*gradient, uchar **gray_image, int h, int w)
+void compute_gradient(float*gradient, short **gray_image, int h, int w)
 {
 	float gray,gray_minus,gray_plus;
+	float half_intensity = (IntensityLimit-1)/2.0;
 	int node_idx = 0;
 	for(int y=0;y<h;y++)
 	{
 		gray_minus=gray_image[y][0];
 		gray=gray_plus=gray_image[y][1];
-		gradient[node_idx]=gray_plus-gray_minus+127.5;
+		gradient[node_idx]=gray_plus-gray_minus+half_intensity;
 
 		node_idx++;
 
 		for(int x=1;x<w-1;x++)
 		{
 			gray_plus=gray_image[y][x+1];
-			gradient[node_idx]=0.5*(gray_plus-gray_minus)+127.5;
+			gradient[node_idx]=0.5*(gray_plus-gray_minus)+half_intensity;
 
 			gray_minus=gray;
 			gray=gray_plus;
 			node_idx++;
 		}
 		
-		gradient[node_idx]=gray_plus-gray_minus+127.5;
+		gradient[node_idx]=gray_plus-gray_minus+half_intensity;
 		node_idx++;
 	}
 }
@@ -69,8 +70,21 @@ int main()
 	//cv::imwrite("hand_mst_no_ctmf.bmp", ppmimg);
 
 	//build MST
-	cv::Mat left = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
-	cv::Mat right = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
+	//cv::Mat left = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
+	//cv::Mat right = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
+	
+	cv::Mat matL = cv::imread(LeftIMGName, CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat matR = cv::imread(RightIMGName, CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat left = cv::Mat(matL.rows, matL.cols, CV_16UC1);
+	cv::Mat right = cv::Mat(matR.rows, matR.cols, CV_16UC1);
+	for(int y=0; y<left.rows ; y++){
+		for(int x=0; x<left.cols ; x++)
+		{
+			left.at<short>(y, x) = matL.at<uchar>(y, x) * 4;// / 4;
+
+			right.at<short>(y, x)  = matR.at<uchar>(y, x) * 4;// / 4;
+		}
+	}
 
 	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
     if( fs.isOpened() == false){
@@ -83,24 +97,15 @@ int main()
 	fs["right"] >> matR;                
     fs.release();
 
-	cv::Mat left = cv::Mat(480, 640, CV_8UC3);
-	cv::Mat right = cv::Mat(480, 640, CV_8UC3);
+	cv::Mat left = cv::Mat(480, 640, CV_16UC1);
+	cv::Mat right = cv::Mat(480, 640, CV_16UC1);
 
 	for(int y=0; y<left.rows ; y++){
-		int x_ = 0;
 		for(int x=0; x<left.cols ; x++)
 		{
-			uchar lvalue = matL.at<unsigned short>(y, x) / 4;
-			left.at<uchar>(y, x_  ) = lvalue;
-			left.at<uchar>(y, x_+1) = lvalue;
-			left.at<uchar>(y, x_+2) = lvalue;
+			left.at<short>(y, x) = matL.at<unsigned short>(y, x);// / 4;
 
-			uchar rvalue = matR.at<unsigned short>(y, x) / 4;
-			right.at<uchar>(y, x_  ) = rvalue;
-			right.at<uchar>(y, x_+1) = rvalue;
-			right.at<uchar>(y, x_+2) = rvalue;
-
-			x_+=3;
+			right.at<short>(y, x)  = matR.at<unsigned short>(y, x);// / 4;
 		}
 	}
 
@@ -113,8 +118,8 @@ int main()
 
 	mst.init(h, w, 1);
 	
-	int *left_color_1d_arr  = c3_mat_to_1d_int_arr(left , h, w);
-	int *right_color_1d_arr = c3_mat_to_1d_int_arr(right, h, w);
+	short *left_color_1d_arr  = lips_c1_mat_to_1d_int_arr(left , h, w);
+	short *right_color_1d_arr = lips_c1_mat_to_1d_int_arr(right, h, w);
 	float *left_1d_gradient  = new float[node_c];
 	float *right_1d_gradient = new float[node_c];
 	/************************************************************************
@@ -122,18 +127,18 @@ int main()
 		深度圖的精確度大大降低
 		apply_cl_color_img_mdf<int>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	int * left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, node_c, h, w, false);
-	int *right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, node_c, h, w, false);
+	short * left_color_mdf_1d_arr = apply_cl_color_img_mdf<short>(context, device, program, err,  left_color_1d_arr, node_c, h, w, false);
+	short *right_color_mdf_1d_arr = apply_cl_color_img_mdf<short>(context, device, program, err, right_color_1d_arr, node_c, h, w, false);
 
 	cl_match_elem *left_cwz_img  = new cl_match_elem(node_c, left_color_mdf_1d_arr , left_1d_gradient );
 	cl_match_elem *right_cwz_img = new cl_match_elem(node_c, right_color_mdf_1d_arr, right_1d_gradient);
 	printf("陣列init花費時間: %fs\n", double(clock() - img_init_s) / CLOCKS_PER_SEC);
 	
-	uchar *left_gray_1d_arr  = int_1d_arr_to_gray_arr(left_color_1d_arr , node_c);
-	uchar *right_gray_1d_arr = int_1d_arr_to_gray_arr(right_color_1d_arr, node_c);
+	short *left_gray_1d_arr  = left_color_1d_arr;
+	short *right_gray_1d_arr = right_color_1d_arr;
 
-	uchar **left_gray_2d_arr  = map_1d_arr_to_2d_arr<uchar>(left_gray_1d_arr, h, w);
-	uchar **right_gray_2d_arr = map_1d_arr_to_2d_arr<uchar>(right_gray_1d_arr, h, w);
+	short **left_gray_2d_arr  = map_1d_arr_to_2d_arr<short>(left_gray_1d_arr, h, w);
+	short **right_gray_2d_arr = map_1d_arr_to_2d_arr<short>(right_gray_1d_arr, h, w);
 
 	/************************************************************************
 				用來產生gradient的灰階圖不要做median filtering
@@ -146,8 +151,8 @@ int main()
 		用來做 mst 的灰階影像可以做Median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	uchar *left_gray_1d_arr_for_mst;
-	if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, h*w, h, w, false)) )
+	short *left_gray_1d_arr_for_mst;
+	if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<short>(context, device, program, err, left_gray_1d_arr, h*w, h, w, false)) )
 	{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
 	mst.set_img(left_gray_1d_arr_for_mst);
 	mst.profile_mst();
@@ -159,15 +164,15 @@ int main()
 	/*******************************************************
 							Matching cost
 	*******************************************************/
-	if( !apply_cl_cost_match(context, device, program, err, 
-						left_cwz_img, right_cwz_img, matching_result, h, w, match_result_len) )
-	{ printf("apply_cl_cost_match failed.\n"); }
+	if( !apply_lips_10bits_cl_cost_match(context, device, program, err, 
+						                 left_cwz_img, right_cwz_img, matching_result, h, w, match_result_len) )
+	{ printf("apply_lips_10bits_cl_cost_match failed.\n"); }
 
 	double agt_total_t = 0;
 	mst.cost_agt(matching_result, &agt_total_t);
 
 	time_t pick_best_disparity = clock();
-	uchar *best_disparity = mst.pick_best_dispairty();
+	short *best_disparity = mst.pick_best_dispairty();
 	if(agt_total_t != 0){
 		double tmp;
 		printf("get best d time consumption:%2.8fs\n", tmp = double(clock()-pick_best_disparity) / CLOCKS_PER_SEC);
@@ -178,16 +183,16 @@ int main()
 		取得深度圖後可以做median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	uchar *final_dmap;
-	if( !(final_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, node_c, h, w, true)) )
+	short *final_dmap;
+	if( !(final_dmap = apply_cl_color_img_mdf<short>(context, device, program, err, best_disparity, node_c, h, w, true)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 
-	cv::Mat dMap(h, w, CV_8U);
+	cv::Mat dMap(h, w, CV_16UC1);
 	int idx = 0;
 	for(int y=0 ; y<h ; y++) for(int x=0 ; x<w ; x++)
 	{
 		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)disparityLevel;
-		dMap.at<uchar>(y,x) = final_dmap[idx] * (double) IntensityLimit / (double)disparityLevel;
+		dMap.at<ushort>(y,x) = final_dmap[idx];// * (double) IntensityLimit / (double)disparityLevel;
 		//dMap.at<uchar>(y,x) = best_disparity[idx];
 		idx++;
 	}

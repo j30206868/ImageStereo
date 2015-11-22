@@ -3,7 +3,7 @@
 
 #include "common_func.h"
 
-typedef uchar TEleUnit;
+typedef short TEleUnit;
 
 class cwz_mst{
 public:

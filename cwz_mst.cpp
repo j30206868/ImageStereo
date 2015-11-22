@@ -308,14 +308,14 @@ void cwz_mst::reinit(){
 }
 //for testing
 void cwz_mst::test_correctness(){
-	if( eqTypes<TEleUnit, uchar>() )
+	if( eqTypes<TEleUnit, short>() )
 	{//8UC1 test
 		printf("\n*********************************************\n");
 		printf("cwz_mst::test_correctness() 8UC1 test called:\n");
 		
 		int h = 3, w = 3;
 		int node_c = w*h;
-		uchar *arr = new uchar[node_c];
+		short *arr = new short[node_c];
 		arr[0] = 255;	arr[1] = 254;	arr[2] = 250;
 		arr[3] = 171;	arr[4] =  20;	arr[5] =   0;
 		arr[6] = 150;	arr[7] =  11;	arr[8] =  11;

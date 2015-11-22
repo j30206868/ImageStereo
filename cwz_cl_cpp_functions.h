@@ -152,6 +152,90 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 	return 1;
 }
 
+int apply_lips_10bits_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
+						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int h, int w, int match_result_len){
+	cl_kernel matcher = clCreateKernel(program, "lips_10b_matching_cost", 0);
+	if(matcher == 0) { std::cerr << "Can't load lips_10b_matching_cost kernel\n"; return 0; }
+
+	match_info info;
+	info.img_height = h; info.img_width = w; info.max_d = disparityLevel; info.node_c = w * h;
+
+	time_t step_up_kernel_s = clock();
+
+	cl_mem cl_l_rgb = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(short) * left_cwz_img->node_c, &left_cwz_img->rgb[0], NULL);
+	cl_mem cl_l_gradient = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * left_cwz_img->node_c, &left_cwz_img->gradient[0], NULL);
+
+	cl_mem cl_r_rgb = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(short) * right_cwz_img->node_c, &right_cwz_img->rgb[0], NULL);
+	cl_mem cl_r_gradient = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * right_cwz_img->node_c, &right_cwz_img->gradient[0], NULL);
+
+	cl_mem cl_match_result = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * match_result_len, NULL, NULL);
+
+	cl_mem cl_match_info = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(match_info), &info, NULL);
+
+	if(cl_l_rgb == 0 || cl_l_gradient == 0 ||
+	   cl_r_rgb == 0 || cl_r_gradient == 0 ||
+	   cl_match_result == 0 || cl_match_info == 0) {
+		std::cerr << "Can't create OpenCL buffer\n";
+		clReleaseKernel(matcher);
+		clReleaseMemObject(cl_l_rgb);
+		clReleaseMemObject(cl_l_gradient);
+		clReleaseMemObject(cl_r_rgb);
+		clReleaseMemObject(cl_r_gradient);
+		clReleaseMemObject(cl_match_result);
+		clReleaseMemObject(cl_match_info);
+		return 0;
+	}
+
+	clSetKernelArg(matcher, 0, sizeof(cl_mem), &cl_l_rgb);
+	clSetKernelArg(matcher, 1, sizeof(cl_mem), &cl_l_gradient);
+	clSetKernelArg(matcher, 2, sizeof(cl_mem), &cl_r_rgb);
+	clSetKernelArg(matcher, 3, sizeof(cl_mem), &cl_r_gradient);
+	clSetKernelArg(matcher, 4, sizeof(cl_mem), &cl_match_result);
+	clSetKernelArg(matcher, 5, sizeof(cl_mem), &cl_match_info);
+	
+	cl_command_queue queue = clCreateCommandQueue(context, device, 0, 0);
+	if(queue == 0) {
+		std::cerr << "Can't create command queue\n";
+		clReleaseKernel(matcher);
+		clReleaseMemObject(cl_l_rgb);
+		clReleaseMemObject(cl_l_gradient);
+		clReleaseMemObject(cl_r_rgb);
+		clReleaseMemObject(cl_r_gradient);
+		clReleaseMemObject(cl_match_result);
+		clReleaseMemObject(cl_match_info);
+		return 0;
+	}
+	printf("Setup kernel Time: %.6fs\n", double(clock() - step_up_kernel_s) / CLOCKS_PER_SEC);
+
+	size_t work_size = w * h;
+	clock_t tOfCLStart = clock();
+    /* Do your stuff here */
+	err = clEnqueueNDRangeKernel(queue, matcher, 1, 0, &work_size, 0, 0, 0, 0);
+
+	if(err == CL_SUCCESS) {
+		err = clEnqueueReadBuffer(queue, cl_match_result, CL_TRUE, 0, sizeof(float) * match_result_len, &matching_result[0], 0, 0, 0);
+	}
+	printf("CL Time taken: %.6fs\n", (double)(clock() - tOfCLStart)/CLOCKS_PER_SEC);
+
+	if(err == CL_SUCCESS) {
+
+	}
+	else {
+		std::cerr << "Can't run kernel or read back data\n";	
+	}
+
+	clReleaseKernel(matcher);
+	clReleaseMemObject(cl_l_rgb);
+	clReleaseMemObject(cl_l_gradient);
+	clReleaseMemObject(cl_r_rgb);
+	clReleaseMemObject(cl_r_gradient);
+	clReleaseMemObject(cl_match_result);
+	clReleaseCommandQueue(queue);
+	clReleaseMemObject(cl_match_info);
+	
+	return 1;
+}
+
 template<class T>
 T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
 						   T *color_1d_arr, int node_c, int h, int w, bool apply_median_filter = true)
@@ -171,6 +255,9 @@ T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program 
 	}else if(eqTypes<uchar, T>()){
 		mdf_kernel = clCreateKernel(program, "MedianFilterGrayScale", 0);
 		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterGrayScale kernel\n"; return 0; }
+	}else if( eqTypes<short, T>() ){
+		mdf_kernel = clCreateKernel(program, "Lips_10b_MedianFilterGrayScale", 0);
+		if(mdf_kernel == 0) { std::cerr << "Can't load Lips_10b_MedianFilterGrayScale kernel\n"; return 0; }
 	}else{
 		return 0;
 	}
