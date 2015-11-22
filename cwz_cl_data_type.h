@@ -5,6 +5,7 @@ typedef struct {
 	int max_d;
 	int img_width;
 	int img_height;
+	int node_c;
 } match_info;
 
 const char *getErrorString(cl_int error)

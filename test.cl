@@ -12,6 +12,7 @@ typedef struct {
 	int max_d;
 	int img_width;
 	int img_height;
+	int node_c;
 } match_info;
 
 __kernel void matching_cost(__global const int* l_rgb, __global const float *l_gradient, 
@@ -23,36 +24,22 @@ __kernel void matching_cost(__global const int* l_rgb, __global const float *l_g
 
 	const int idx = get_global_id(0);
 	const int x = idx % info->img_width;
-	const int resultIdx = idx * info->max_d;
-	const int sD = fmin((float)x, info->max_d-1);
-	float color_cost;
-	float gradient_cost;
-	int ridx;
-	int d;
-	for(d = sD ; d >=0 ; d--){
-		ridx = idx-d;
-		color_cost = abs(  ((l_rgb[idx]&mask_b) - (r_rgb[ridx]&mask_b))      ) +
-					 abs( (((l_rgb[idx]&mask_g) - (r_rgb[ridx]&mask_g)) >> 8)) +
-					 abs( (((l_rgb[idx]&mask_r) - (r_rgb[ridx]&mask_r)) >> 16));
+
+	int ridx = idx - x;
+	for(int d = info->max_d-1 ; d >= 0  ; d--){
+		if(x > d)
+			ridx = idx-d;
+
+		float color_cost = abs(  ((l_rgb[idx]&mask_b) - (r_rgb[ridx]&mask_b))      ) +
+					       abs( (((l_rgb[idx]&mask_g) - (r_rgb[ridx]&mask_g)) >> 8)) +
+					       abs( (((l_rgb[idx]&mask_r) - (r_rgb[ridx]&mask_r)) >> 16));
 
 		color_cost = fmin(color_cost/3.0, max_color_cost);
 
-		gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
+		float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
 
-		result[resultIdx+d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
-	}
-
-	ridx = idx-x;
-	for(d = info->max_d-1 ; d > sD ; d--){
-		color_cost = abs(  ((l_rgb[idx]&mask_b) - (r_rgb[ridx]&mask_b))      ) +
-					 abs( (((l_rgb[idx]&mask_g) - (r_rgb[ridx]&mask_g)) >> 8)) +
-					 abs( (((l_rgb[idx]&mask_r) - (r_rgb[ridx]&mask_r)) >> 16));
-
-		color_cost = fmin(color_cost/3, max_color_cost);
-
-		gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
-
-		result[resultIdx+d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		result[(idx * info->max_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
 	}
 }
 

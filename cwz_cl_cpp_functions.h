@@ -74,7 +74,7 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 	if(matcher == 0) { std::cerr << "Can't load matching_cost kernel\n"; return 0; }
 
 	match_info info;
-	info.img_height = h; info.img_width = w; info.max_d = disparityLevel;
+	info.img_height = h; info.img_width = w; info.max_d = disparityLevel; info.node_c = w * h;
 
 	time_t step_up_kernel_s = clock();
 
@@ -163,7 +163,7 @@ T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program 
 	cl_kernel mdf_kernel;
 
 	match_info info;
-	info.img_height = h; info.img_width = w; info.max_d = disparityLevel;
+	info.img_height = h; info.img_width = w; info.max_d = disparityLevel; info.node_c = w * h;
 
 	if(eqTypes<int, T>()){
 		mdf_kernel = clCreateKernel(program, "MedianFilterBitonic", 0);

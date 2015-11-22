@@ -18,10 +18,10 @@
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_mst.h"
 
-const char* LeftIMGName  = "face/face1.png"; 
-const char* RightIMGName = "face/face2.png";
-//const char* LeftIMGName  = "dolls/dolls1.png"; 
-//const char* RightIMGName = "dolls/dolls2.png";
+//const char* LeftIMGName  = "face/face1.png"; 
+//const char* RightIMGName = "face/face2.png";
+const char* LeftIMGName  = "dolls/dolls1.png"; 
+const char* RightIMGName = "dolls/dolls2.png";
 
 void compute_gradient(float*gradient, uchar **gray_image, int h, int w)
 {
@@ -69,10 +69,10 @@ int main()
 	//cv::imwrite("hand_mst_no_ctmf.bmp", ppmimg);
 
 	//build MST
-	//cv::Mat left = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
-	//cv::Mat right = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
+	cv::Mat left = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
+	cv::Mat right = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
 
-	cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
+	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
     if( fs.isOpened() == false){
         printf( "No More....Quitting...!" );
         return 0;
@@ -147,13 +147,14 @@ int main()
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
 	uchar *left_gray_1d_arr_for_mst;
-	if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, h*w, h, w, true)) )
+	if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, h*w, h, w, false)) )
 	{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
 	mst.set_img(left_gray_1d_arr_for_mst);
 	mst.profile_mst();
 
 	int match_result_len = h * w * disparityLevel;
-	float *matching_result = new float[match_result_len];
+	//float *matching_result = new float[match_result_len];
+	float *matching_result = mst.get_agt_result();
 
 	/*******************************************************
 							Matching cost
@@ -162,20 +163,23 @@ int main()
 						left_cwz_img, right_cwz_img, matching_result, h, w, match_result_len) )
 	{ printf("apply_cl_cost_match failed.\n"); }
 
-	time_t cost_agt_t = clock();
-	mst.cost_agt(matching_result);
-	printf("cost_agt_t: %fs\n", double(clock()-cost_agt_t) / CLOCKS_PER_SEC);
+	double agt_total_t = 0;
+	mst.cost_agt(matching_result, &agt_total_t);
 
 	time_t pick_best_disparity = clock();
 	uchar *best_disparity = mst.pick_best_dispairty();
-	printf("pick_best_disparity: %fs\n", double(clock()-pick_best_disparity) / CLOCKS_PER_SEC);
-
+	if(agt_total_t != 0){
+		double tmp;
+		printf("get best d time consumption:%2.8fs\n", tmp = double(clock()-pick_best_disparity) / CLOCKS_PER_SEC);
+		printf("------------------------------------\n");
+		printf("     total time consumption:%2.8fs\n", agt_total_t+tmp);
+	}
 	/************************************************************************
 		取得深度圖後可以做median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
 	uchar *final_dmap;
-	if( !(final_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, node_c, h, w, false)) )
+	if( !(final_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, node_c, h, w, true)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 
 	cv::Mat dMap(h, w, CV_8U);

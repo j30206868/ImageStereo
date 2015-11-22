@@ -9,6 +9,8 @@ class cwz_mst{
 public:
 	static float sigma;
 
+	float *get_agt_result();
+
 	cwz_mst():isInit(false), hasImg(false){}
 	void init(int _h, int _w, int _ch);
 	void set_img(TEleUnit *_img);
@@ -18,7 +20,7 @@ public:
 	void kruskal_mst();
 	void build_tree();
 	//
-	void cost_agt(float *match_cost_result);
+	void cost_agt(float *match_cost_result, double *time_comsumption_s = NULL);
 	TEleUnit* pick_best_dispairty();
 	//profiling
 	void mst();
@@ -57,17 +59,12 @@ private:
 	int *node_weight;//weight on the edge with its parent ( root's weight will be -1 )
 	int *node_idx_from_p_to_c;//node id from parent to children
 	
-	float *agt_result;
 	float whistogram[IntensityLimit];
+	float *agt_result;
 
 	int h, w;
 	int edge_amt;
 	int node_amt;
 	int channel;
 };
-
-/*namespace cwz_mst_filter{
-	float *up_cost_agt(float *match_cost_result, int *node_parent_id, int **child_node_list, int *child_node_num, int *node_weight, int *node_idx_from_p_to_c, float *histogram, int node_amt);
-};*/
-
 #endif
