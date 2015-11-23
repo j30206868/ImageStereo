@@ -18,7 +18,7 @@
 const float default_sigma = 0.1;
 const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
-const bool depth_post_mdf = false;
+const bool depth_post_mdf = true;
 
 struct cl_match_elem{
 	int *rgb;

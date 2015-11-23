@@ -102,7 +102,7 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 	mst.profile_mst();
 
 	int match_result_len = h * w * disparityLevel;
-	float *matching_result = new float[match_result_len];
+	float *matching_result = mst.get_agt_result();
 
 	/*******************************************************
 							Matching cost
@@ -112,7 +112,7 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 	{ printf("apply_cl_cost_match failed.\n"); }
 
 	time_t cost_agt_t = clock();
-	mst.cost_agt(matching_result);
+	mst.cost_agt();
 	printf("cost_agt_t: %fs\n", double(clock()-cost_agt_t) / CLOCKS_PER_SEC);
 
 	time_t pick_best_disparity = clock();
@@ -129,9 +129,50 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 	return final_dmap;
 }
 
+bool *detect_occlusion(uchar *left_depth, uchar *right_depth, int h, int w, int node_amt){
+	bool *mask = new bool[node_amt];
+	memset(mask, true, sizeof(bool) * node_amt);
+
+	bool **left_mask = map_1d_arr_to_2d_arr<bool>(mask , h, w);
+	uchar **left_2d  = map_1d_arr_to_2d_arr<uchar>(left_depth , h, w);
+	uchar **right_2d = map_1d_arr_to_2d_arr<uchar>(right_depth, h, w);
+	
+	for(int y=0 ; y<h ; y++){
+		for(int x=0 ; x<w ; x++){
+			int d = left_2d[y][x];
+			int rx = x-d;
+			if( rx > 0 ){
+				if( (left_2d[y][x] - right_2d[y][rx]) != 0 ){
+					left_mask[y][x] = false;
+				}
+			}else{
+				left_mask[y][x] = false;
+			}
+		}
+	}
+	delete[] left_mask;
+	delete[] left_2d;
+	delete[] right_2d;
+
+	return mask;
+}
+void calc_new_cost_after_left_right_check(float *left_agt, uchar *left_dmap, bool *left_mask, int h, int w, int node_amt){
+	int total_len = node_amt * disparityLevel;
+
+	memset(left_agt, 0, sizeof(float) * total_len);
+	for(int i=0 ; i<total_len ; i+=disparityLevel) if(left_mask[i/disparityLevel]){
+		for(int d=0; d<disparityLevel ; d++){
+			left_agt[i+d] = std::abs(d - left_dmap[i/disparityLevel]);
+		}
+	}
+}
+
 int main()
 {
-	cwz_mst mst;
+	//cv::Mat hand = cv::imread("hand.ppm", CV_LOAD_IMAGE_COLOR);
+
+	cwz_mst mstL;
+	cwz_mst mstR;
 	//mst.test_correctness();
 
 	/*******************************************************
@@ -151,13 +192,13 @@ int main()
 	cv::Mat left = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
 	cv::Mat right = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
 
-	cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
+/*	cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
     if( fs.isOpened() == false){
         printf( "No More....Quitting...!" );
         return 0;
     }
 
-    /*cv::Mat matL , matR; //= Mat(480, 640, CV_16UC1);
+    cv::Mat matL , matR; //= Mat(480, 640, CV_16UC1);
     fs["left"] >> matL; 
 	fs["right"] >> matR;                
     fs.release();
@@ -184,20 +225,37 @@ int main()
 	}
 
 	/************************************/
-	
-	uchar *left_dmap;
-	if( !(left_dmap = cwz_dmap_generate(context, device, program, err, left, right, mst, false)) )
-	{printf( "cwz_dmap_generate left_dmap failed...!" );return 0;}
-
-	uchar *right_dmap;
-	if( !(right_dmap = cwz_dmap_generate(context, device, program, err, right, left, mst, true)) )
-	{printf( "cwz_dmap_generate right_dmap failed...!" );return 0;}
-
 	int w = left.cols;
 	int h = left.rows;
 
-	cv::Mat leftDMap(h, w, CV_8U);
+	uchar *left_dmap;
+	if( !(left_dmap = cwz_dmap_generate(context, device, program, err, left, right, mstL, false)) )
+	{printf( "cwz_dmap_generate left_dmap failed...!" );return 0;}
+
+	uchar *right_dmap;
+	if( !(right_dmap = cwz_dmap_generate(context, device, program, err, right, left, mstR, true)) )
+	{printf( "cwz_dmap_generate right_dmap failed...!" );return 0;}
+
+	uchar *refined_dmap;
+	time_t start = clock();
+	bool *left_mask = detect_occlusion(left_dmap, right_dmap, h, w, w*h);
+	calc_new_cost_after_left_right_check(mstL.get_agt_result(), left_dmap, left_mask, h, w, w*h);
+	mstL.cost_agt();
+	refined_dmap = mstL.pick_best_dispairty();
+	printf("calc_new_cost_after_left_right_check: %fs\n", double(clock()-start) / CLOCKS_PER_SEC);
+
+	cv::Mat refinedDMap(h, w, CV_8U);
 	int idx = 0;
+	for(int y=0 ; y<h ; y++) for(int x=0 ; x<w ; x++)
+	{
+		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)disparityLevel;
+		refinedDMap.at<uchar>(y,x) = refined_dmap[idx] * (double) IntensityLimit / (double)disparityLevel;
+		//dMap.at<uchar>(y,x) = best_disparity[idx];
+		idx++;
+	}
+
+	cv::Mat leftDMap(h, w, CV_8U);
+	idx = 0;
 	for(int y=0 ; y<h ; y++) for(int x=0 ; x<w ; x++)
 	{
 		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)disparityLevel;
@@ -216,9 +274,13 @@ int main()
 	}
 	//
 
+	cv::imwrite("refinedDMap.bmp", refinedDMap);
 	cv::imwrite("leftDMap.bmp", leftDMap);
 	cv::imwrite("rightDMap.bmp", rightDMap);
 
+	cv::namedWindow("refinedDMap", CV_WINDOW_KEEPRATIO);
+	cv::imshow("refinedDMap",refinedDMap);
+	cv::waitKey(0);
 	cv::namedWindow("leftDMap", CV_WINDOW_KEEPRATIO);
 	cv::imshow("leftDMap",leftDMap);
 	cv::waitKey(0);

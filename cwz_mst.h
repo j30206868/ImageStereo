@@ -10,6 +10,9 @@ public:
 	static float sigma;
 
 	cwz_mst():isInit(false), hasImg(false){}
+
+	float *get_agt_result();
+
 	void init(int _h, int _w, int _ch);
 	void set_img(TEleUnit *_img);
 	//
@@ -18,6 +21,7 @@ public:
 	void kruskal_mst();
 	void build_tree();
 	//
+	void cost_agt();
 	void cost_agt(float *match_cost_result);
 	TEleUnit* pick_best_dispairty();
 	//profiling

@@ -36,6 +36,10 @@ inline int pop(int *stack, int &end){
 	return result;
 }
 
+
+float *cwz_mst::get_agt_result(){
+	return this->agt_result;
+}
 void cwz_mst::init(int _h, int _w, int _ch){
 	this->h = _h;
 	this->w = _w;
@@ -182,35 +186,21 @@ void cwz_mst::build_tree(){
 	}
 }
 //
-void cwz_mst::cost_agt(float *match_cost_result){
+void cwz_mst::cost_agt(){
 	//up agt
 	for(int i = node_amt-1 ; i >= 0 ; i--){
 		int node_i = node_idx_from_p_to_c[i];
 		int node_disparity_i = node_i * disparityLevel;
-
-		for(int d=0 ; d<disparityLevel ; d++)
-			agt_result[ node_disparity_i+d ] = match_cost_result[ node_disparity_i+d ];
-			//printf("agt_result[%2d] agt:%f\n", node_disparity_i, agt_result[ node_disparity_i ]);
 
 		for(int child_c=0 ; child_c < child_node_num[node_i] ; child_c++){
 			int child_i = child_node_list[node_i][child_c];
 			int child_disparity_i = child_i * disparityLevel;
 
 			for(int d=0 ; d<disparityLevel ; d++){
-				//printf("	node_agt[%2d]:%f + child_agt[%2d]:%f * w[%2d]:%f = ", node_disparity_i, agt_result[ node_disparity_i ], child_disparity_i, agt_result[ child_disparity_i+d ], child_i, whistogram[ node_weight[child_i] ]);
 				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * whistogram[ node_weight[child_i] ];
-				//printf("agt_result[%2d]:%f\n", node_disparity_i, agt_result[ node_disparity_i+d ]);
 			}
 		}
 	}
-	/*for(int i=0 ; i<node_amt ; i++){
-		int i_ = i*disparityLevel;
-		for(int d=0 ; d<disparityLevel ; d++){
-			printf("[%3d][%3d]: %f\n", i, d, agt_result[i_ + d]);
-			system("PAUSE");
-		}
-	}*/
-	//printf("downward agt:\n");
 	//down agt
 	for(int i=1 ; i<node_amt ; i++){
 		int node_i = node_idx_from_p_to_c[i];
@@ -222,11 +212,42 @@ void cwz_mst::cost_agt(float *match_cost_result){
 		float one_m_sqw = (1.0 - w * w);
 
 		for(int d=0 ; d<disparityLevel ; d++){
-			//printf("node[%2d]:w[%2d]:%f * agt[%2d]:%f +\n", node_i, node_i, w, parent_disparity_i, agt_result[ parent_disparity_i+d ]);
-			//printf("          one_m_sqw:%f * agt[%2d]:%f = ", one_m_sqw, node_disparity_i, agt_result[node_disparity_i+d]);
 			agt_result[node_disparity_i+d] = w         * agt_result[ parent_disparity_i+d ] +
 											 one_m_sqw * agt_result[node_disparity_i+d];
-			//printf("agt[%2d]:%f\n", node_disparity_i+d, agt_result[node_disparity_i+d]);
+		}
+	}
+}
+void cwz_mst::cost_agt(float *match_cost_result){
+	//up agt
+	for(int i = node_amt-1 ; i >= 0 ; i--){
+		int node_i = node_idx_from_p_to_c[i];
+		int node_disparity_i = node_i * disparityLevel;
+
+		for(int d=0 ; d<disparityLevel ; d++)
+			agt_result[ node_disparity_i+d ] = match_cost_result[ node_disparity_i+d ];
+
+		for(int child_c=0 ; child_c < child_node_num[node_i] ; child_c++){
+			int child_i = child_node_list[node_i][child_c];
+			int child_disparity_i = child_i * disparityLevel;
+
+			for(int d=0 ; d<disparityLevel ; d++){
+				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * whistogram[ node_weight[child_i] ];
+			}
+		}
+	}
+	//down agt
+	for(int i=1 ; i<node_amt ; i++){
+		int node_i = node_idx_from_p_to_c[i];
+		int parent_i = node_parent_id[node_i];
+		int node_disparity_i = node_i * disparityLevel;
+		int parent_disparity_i = parent_i * disparityLevel;
+
+		float w = whistogram[ node_weight[ node_i ] ];
+		float one_m_sqw = (1.0 - w * w);
+
+		for(int d=0 ; d<disparityLevel ; d++){
+			agt_result[node_disparity_i+d] = w         * agt_result[ parent_disparity_i+d ] +
+											 one_m_sqw * agt_result[node_disparity_i+d];
 		}
 	}
 }
