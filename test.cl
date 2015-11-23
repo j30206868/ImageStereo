@@ -84,7 +84,7 @@ __kernel void lips_10b_matching_cost_inverse(__global const short* l_rgb, __glob
 	const int idx = get_global_id(0);
 	const int x = idx % info->img_width;
 
-	int ridx = idx - x + info->img_width;
+	int ridx = idx - x + info->img_width - 1;
 	for(int d = info->max_d - 1 ; d >= 0 ; d--){
 		if( (x + d) < info->img_width )
 			ridx = idx + d;
