@@ -51,7 +51,6 @@ void compute_gradient(float*gradient, uchar **gray_image, int h, int w)
 		node_idx++;
 	}
 }
-
 uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
 						   cv::Mat left,  cv::Mat right, cwz_mst &mst, bool inverse = false)
 {
@@ -72,8 +71,8 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 		深度圖的精確度大大降低
 		apply_cl_color_img_mdf<int>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	int * left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, node_c, h, w, false);
-	int *right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, node_c, h, w, false);
+	int * left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, node_c, h, w, img_pre_mdf);
+	int *right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, node_c, h, w, img_pre_mdf);
 
 	cl_match_elem *left_cwz_img  = new cl_match_elem(node_c, left_color_mdf_1d_arr , left_1d_gradient );
 	cl_match_elem *right_cwz_img = new cl_match_elem(node_c, right_color_mdf_1d_arr, right_1d_gradient);
@@ -97,7 +96,7 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
 	uchar *left_gray_1d_arr_for_mst;
-	if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, h*w, h, w, true)) )
+	if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, h*w, h, w, mst_pre_mdf)) )
 	{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
 	mst.set_img(left_gray_1d_arr_for_mst);
 	mst.profile_mst();
@@ -109,7 +108,7 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 							Matching cost
 	*******************************************************/
 	if( !apply_cl_cost_match(context, device, program, err, 
-						left_cwz_img, right_cwz_img, matching_result, h, w, match_result_len) )
+							left_cwz_img, right_cwz_img, matching_result, h, w, match_result_len, inverse) )
 	{ printf("apply_cl_cost_match failed.\n"); }
 
 	time_t cost_agt_t = clock();
@@ -125,7 +124,7 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
 	uchar *final_dmap;
-	if( !(final_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, node_c, h, w, false)) )
+	if( !(final_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, node_c, h, w, depth_post_mdf)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 	return final_dmap;
 }
@@ -187,25 +186,44 @@ int main()
 	/************************************/
 	
 	uchar *left_dmap;
-	if( !(left_dmap = cwz_dmap_generate(context, device, program, err, right, left, mst, true)) )
-	{}
+	if( !(left_dmap = cwz_dmap_generate(context, device, program, err, left, right, mst, false)) )
+	{printf( "cwz_dmap_generate left_dmap failed...!" );return 0;}
+
+	uchar *right_dmap;
+	if( !(right_dmap = cwz_dmap_generate(context, device, program, err, right, left, mst, true)) )
+	{printf( "cwz_dmap_generate right_dmap failed...!" );return 0;}
+
 	int w = left.cols;
 	int h = left.rows;
 
-	cv::Mat dMap(h, w, CV_8U);
+	cv::Mat leftDMap(h, w, CV_8U);
 	int idx = 0;
 	for(int y=0 ; y<h ; y++) for(int x=0 ; x<w ; x++)
 	{
 		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)disparityLevel;
-		dMap.at<uchar>(y,x) = left_dmap[idx] * (double) IntensityLimit / (double)disparityLevel;
+		leftDMap.at<uchar>(y,x) = left_dmap[idx] * (double) IntensityLimit / (double)disparityLevel;
+		//dMap.at<uchar>(y,x) = best_disparity[idx];
+		idx++;
+	}
+	cv::Mat rightDMap(h, w, CV_8U);
+	idx = 0;
+	for(int y=0 ; y<h ; y++) for(int x=0 ; x<w ; x++)
+	{
+		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)disparityLevel;
+		rightDMap.at<uchar>(y,x) = right_dmap[idx] * (double) IntensityLimit / (double)disparityLevel;
 		//dMap.at<uchar>(y,x) = best_disparity[idx];
 		idx++;
 	}
 	//
 
-	cv::imwrite("dMap.bmp", dMap);
-	cv::namedWindow("testw", CV_NORMAL);
-	cv::imshow("testw",dMap);
+	cv::imwrite("leftDMap.bmp", leftDMap);
+	cv::imwrite("rightDMap.bmp", leftDMap);
+
+	cv::namedWindow("leftDMap", CV_WINDOW_KEEPRATIO);
+	cv::imshow("leftDMap",leftDMap);
+	cv::waitKey(0);
+	cv::namedWindow("rightDMap", CV_WINDOW_KEEPRATIO);
+	cv::imshow("rightDMap",rightDMap);
 	cv::waitKey(0);
 
 	system("PAUSE");

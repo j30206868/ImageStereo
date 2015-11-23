@@ -1,6 +1,6 @@
 #include "cwz_mst.h"
 
-float cwz_mst::sigma = 0.1;
+float cwz_mst::sigma = default_sigma;
 
 inline int get_1d_idx_from_2d(int x, int y, int w){
 	return y * w + x;

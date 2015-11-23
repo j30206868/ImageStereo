@@ -1,4 +1,5 @@
 #include "common_func.h"
+
 //ÅªÀÉ®×¦s¦¨disparity map
 void readDisparityFromFile(std::string fname, int h, int w, cv::Mat &dMap){
 	std::ifstream fin;
