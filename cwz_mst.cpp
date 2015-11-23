@@ -69,7 +69,10 @@ void cwz_mst::init(int _h, int _w, int _ch){
 	this->best_disparity = new TEleUnit[node_amt];
 
 	for(int i=0 ; i<IntensityLimit ; i++){
-		whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		if(setWto1)
+			whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		else
+			whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
 	}
 
 	this->isInit = true;

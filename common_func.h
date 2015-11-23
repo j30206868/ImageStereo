@@ -14,10 +14,11 @@
 
 #define IntensityLimit 256
 #define disparityLevel 140
+#define setWto1 false
 const float default_sigma = 0.1;
 const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
-const bool depth_post_mdf = true;
+const bool depth_post_mdf = false;
 
 struct cl_match_elem{
 	int *rgb;

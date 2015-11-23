@@ -217,7 +217,7 @@ int main()
 	//
 
 	cv::imwrite("leftDMap.bmp", leftDMap);
-	cv::imwrite("rightDMap.bmp", leftDMap);
+	cv::imwrite("rightDMap.bmp", rightDMap);
 
 	cv::namedWindow("leftDMap", CV_WINDOW_KEEPRATIO);
 	cv::imshow("leftDMap",leftDMap);
