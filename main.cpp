@@ -187,7 +187,7 @@ int main()
 	/************************************/
 	
 	uchar *left_dmap;
-	if( !(left_dmap = cwz_dmap_generate(context, device, program, err, left,  right, mst, false)) )
+	if( !(left_dmap = cwz_dmap_generate(context, device, program, err, right, left, mst, true)) )
 	{}
 	int w = left.cols;
 	int h = left.rows;
