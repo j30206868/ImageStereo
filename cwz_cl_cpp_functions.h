@@ -153,9 +153,16 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 }
 
 int apply_lips_10bits_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
-						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int h, int w, int match_result_len){
-	cl_kernel matcher = clCreateKernel(program, "lips_10b_matching_cost", 0);
-	if(matcher == 0) { std::cerr << "Can't load lips_10b_matching_cost kernel\n"; return 0; }
+						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int h, int w, int match_result_len, bool inverse = false){
+	cl_kernel matcher;
+
+	if(inverse == false){
+		matcher = clCreateKernel(program, "lips_10b_matching_cost", 0);
+		if(matcher == 0) { std::cerr << "Can't load lips_10b_matching_cost kernel\n"; return 0; }
+	}else{
+		matcher = clCreateKernel(program, "lips_10b_matching_cost_inverse", 0);
+		if(matcher == 0) { std::cerr << "Can't load lips_10b_matching_cost_inverse kernel\n"; return 0; }
+	}
 
 	match_info info;
 	info.img_height = h; info.img_width = w; info.max_d = disparityLevel; info.node_c = w * h;
@@ -215,7 +222,10 @@ int apply_lips_10bits_cl_cost_match(cl_context &context, cl_device_id &device, c
 	if(err == CL_SUCCESS) {
 		err = clEnqueueReadBuffer(queue, cl_match_result, CL_TRUE, 0, sizeof(float) * match_result_len, &matching_result[0], 0, 0, 0);
 	}
-	printf("CL Time taken: %.6fs\n", (double)(clock() - tOfCLStart)/CLOCKS_PER_SEC);
+	if(inverse == false)
+		printf("lips_10b_matching_cost taken: %.6fs\n", (double)(clock() - tOfCLStart)/CLOCKS_PER_SEC);
+	else
+		printf("lips_10b_matching_cost_inverse taken: %.6fs\n", (double)(clock() - tOfCLStart)/CLOCKS_PER_SEC);
 
 	if(err == CL_SUCCESS) {
 

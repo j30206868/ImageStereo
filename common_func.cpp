@@ -1,4 +1,33 @@
 #include "common_func.h"
+void compute_gradient(float*gradient, short **gray_image, int h, int w)
+{
+	float gray,gray_minus,gray_plus;
+	float half_intensity = (IntensityLimit-1)/2.0;
+	int node_idx = 0;
+	for(int y=0;y<h;y++)
+	{
+		gray_minus=gray_image[y][0];
+		gray=gray_plus=gray_image[y][1];
+		gradient[node_idx]=gray_plus-gray_minus+half_intensity;
+
+		node_idx++;
+
+		for(int x=1;x<w-1;x++)
+		{
+			gray_plus=gray_image[y][x+1];
+			gradient[node_idx]=0.5*(gray_plus-gray_minus)+half_intensity;
+
+			gray_minus=gray;
+			gray=gray_plus;
+			node_idx++;
+		}
+		
+		gradient[node_idx]=gray_plus-gray_minus+half_intensity;
+		node_idx++;
+	}
+}
+
+
 //ÅªÀÉ®×¦s¦¨disparity map
 void readDisparityFromFile(std::string fname, int h, int w, cv::Mat &dMap){
 	std::ifstream fin;

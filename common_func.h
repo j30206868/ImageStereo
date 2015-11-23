@@ -12,8 +12,10 @@
 
 #include <time.h>
 
-#define IntensityLimit 1024
-#define disparityLevel 60
+#define IntensityLimit 256
+#define disparityLevel 130
+
+void compute_gradient(float*gradient, short **gray_image, int h, int w);
 
 struct cl_match_elem{
 	short *rgb;

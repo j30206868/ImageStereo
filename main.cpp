@@ -18,98 +18,16 @@
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_mst.h"
 
-const char* LeftIMGName  = "face/face1.png"; 
-const char* RightIMGName = "face/face2.png";
+//const char* LeftIMGName  = "face/face1.png"; 
+//const char* RightIMGName = "face/face2.png";
 //const char* LeftIMGName  = "dolls/dolls1.png"; 
 //const char* RightIMGName = "dolls/dolls2.png";
+const char* LeftIMGName  = "structure/struct_left.bmp"; 
+const char* RightIMGName = "structure/struct_right.bmp";
 
-void compute_gradient(float*gradient, short **gray_image, int h, int w)
+short *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
+						   cv::Mat &left, cv::Mat &right, cwz_mst &mst, bool inverse = false)
 {
-	float gray,gray_minus,gray_plus;
-	float half_intensity = (IntensityLimit-1)/2.0;
-	int node_idx = 0;
-	for(int y=0;y<h;y++)
-	{
-		gray_minus=gray_image[y][0];
-		gray=gray_plus=gray_image[y][1];
-		gradient[node_idx]=gray_plus-gray_minus+half_intensity;
-
-		node_idx++;
-
-		for(int x=1;x<w-1;x++)
-		{
-			gray_plus=gray_image[y][x+1];
-			gradient[node_idx]=0.5*(gray_plus-gray_minus)+half_intensity;
-
-			gray_minus=gray;
-			gray=gray_plus;
-			node_idx++;
-		}
-		
-		gradient[node_idx]=gray_plus-gray_minus+half_intensity;
-		node_idx++;
-	}
-}
-
-int main()
-{
-	cwz_mst mst;
-	//mst.test_correctness();
-
-	/*******************************************************
-							 OpenCL
-	*******************************************************/
-	cl_int err;
-	cl_context context;
-	cl_device_id device = setup_opencl(context, err);
-
-	cl_program program = load_program(context, "test.cl");
-	if(program == 0) { std::cerr << "Can't load or build program\n"; clReleaseContext(context); return 0; }
-
-	//cv::Mat ppmimg = cv::imread("hand.ppm");
-	//cv::imwrite("hand_mst_no_ctmf.bmp", ppmimg);
-
-	//build MST
-	//cv::Mat left = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
-	//cv::Mat right = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
-	
-	cv::Mat matL = cv::imread(LeftIMGName, CV_LOAD_IMAGE_GRAYSCALE);
-	cv::Mat matR = cv::imread(RightIMGName, CV_LOAD_IMAGE_GRAYSCALE);
-	cv::Mat left = cv::Mat(matL.rows, matL.cols, CV_16UC1);
-	cv::Mat right = cv::Mat(matR.rows, matR.cols, CV_16UC1);
-	for(int y=0; y<left.rows ; y++){
-		for(int x=0; x<left.cols ; x++)
-		{
-			left.at<short>(y, x) = matL.at<uchar>(y, x) * 4;// / 4;
-
-			right.at<short>(y, x)  = matR.at<uchar>(y, x) * 4;// / 4;
-		}
-	}
-
-	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
-    if( fs.isOpened() == false){
-        printf( "No More....Quitting...!" );
-        return 0;
-    }
-
-    cv::Mat matL , matR; //= Mat(480, 640, CV_16UC1);
-    fs["left"] >> matL; 
-	fs["right"] >> matR;                
-    fs.release();
-
-	cv::Mat left = cv::Mat(480, 640, CV_16UC1);
-	cv::Mat right = cv::Mat(480, 640, CV_16UC1);
-
-	for(int y=0; y<left.rows ; y++){
-		for(int x=0; x<left.cols ; x++)
-		{
-			left.at<short>(y, x) = matL.at<unsigned short>(y, x);// / 4;
-
-			right.at<short>(y, x)  = matR.at<unsigned short>(y, x);// / 4;
-		}
-	}
-
-	/************************************/
 	time_t img_init_s = clock();
 
 	int w = left.cols;
@@ -165,7 +83,7 @@ int main()
 							Matching cost
 	*******************************************************/
 	if( !apply_lips_10bits_cl_cost_match(context, device, program, err, 
-						                 left_cwz_img, right_cwz_img, matching_result, h, w, match_result_len) )
+											left_cwz_img, right_cwz_img, matching_result, h, w, match_result_len, inverse) )
 	{ printf("apply_lips_10bits_cl_cost_match failed.\n"); }
 
 	double agt_total_t = 0;
@@ -187,20 +105,119 @@ int main()
 	if( !(final_dmap = apply_cl_color_img_mdf<short>(context, device, program, err, best_disparity, node_c, h, w, true)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 
-	cv::Mat dMap(h, w, CV_16UC1);
+	return final_dmap;
+}
+
+
+int main()
+{
+	cwz_mst mstL;
+	cwz_mst mstR;
+	//mst.test_correctness();
+
+	cv::Mat hand = cv::imread("hand.ppm", CV_LOAD_IMAGE_GRAYSCALE);
+
+	/*******************************************************
+							 OpenCL
+	*******************************************************/
+	cl_int err;
+	cl_context context;
+	cl_device_id device = setup_opencl(context, err);
+
+	cl_program program = load_program(context, "test.cl");
+	if(program == 0) { std::cerr << "Can't load or build program\n"; clReleaseContext(context); return 0; }
+
+	//cv::Mat ppmimg = cv::imread("hand.ppm");
+	//cv::imwrite("hand_mst_no_ctmf.bmp", ppmimg);
+
+	//build MST
+	//cv::Mat left = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
+	//cv::Mat right = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
+	
+	cv::Mat matL = cv::imread(LeftIMGName, CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat matR = cv::imread(RightIMGName, CV_LOAD_IMAGE_GRAYSCALE);
+
+	cv::imwrite("left_hand.ppm", matL);
+	cv::imwrite("right_hand.ppm", matR);
+
+	cv::Mat left = cv::Mat(matL.rows, matL.cols, CV_16UC1);
+	cv::Mat right = cv::Mat(matR.rows, matR.cols, CV_16UC1);
+	for(int y=0; y<left.rows ; y++){
+		for(int x=0; x<left.cols ; x++)
+		{
+			left.at<short>(y, x) = matL.at<uchar>(y, x);// * 4;// / 4;
+
+			right.at<short>(y, x)  = matR.at<uchar>(y, x);// * 4;// / 4;
+		}
+	}
+
+	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
+    if( fs.isOpened() == false){
+        printf( "No More....Quitting...!" );
+        return 0;
+    }
+
+    cv::Mat matL , matR; //= Mat(480, 640, CV_16UC1);
+    fs["left"] >> matL; 
+	fs["right"] >> matR;                
+    fs.release();
+
+	cv::Mat left = cv::Mat(480, 640, CV_16UC1);
+	cv::Mat right = cv::Mat(480, 640, CV_16UC1);
+
+	for(int y=0; y<left.rows ; y++){
+		for(int x=0; x<left.cols ; x++)
+		{
+			left.at<short>(y, x) = matL.at<unsigned short>(y, x);// / 4;
+
+			right.at<short>(y, x)  = matR.at<unsigned short>(y, x);// / 4;
+		}
+	}
+
+	/************************************/
+	
+	int w = left.cols;
+	int h = left.rows;
+
+	printf("Image width:%d height:%d\n", w, h);
+
+	short *left_final_dmap;
+	short *right_final_dmap;
+
+	if( !(left_final_dmap = cwz_dmap_generate(context, device, program, err, left, right, mstL, false)) )
+	{ printf( "left cwz_dmap_generate failed!\n" ); }
+
+	if( !(right_final_dmap = cwz_dmap_generate(context, device, program, err, right, left, mstR, true)) )
+	{ printf( "right cwz_dmap_generate failed!\n" ); }
+
+	cv::Mat leftDMap(h, w, CV_8UC1);
 	int idx = 0;
 	for(int y=0 ; y<h ; y++) for(int x=0 ; x<w ; x++)
 	{
-		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)disparityLevel;
-		dMap.at<ushort>(y,x) = final_dmap[idx];// * (double) IntensityLimit / (double)disparityLevel;
-		//dMap.at<uchar>(y,x) = best_disparity[idx];
+		leftDMap.at<uchar>(y,x) = left_final_dmap[idx];// * (double) IntensityLimit / (double)disparityLevel;
+		//leftDMap.at<ushort>(y,x) = left_final_dmap[idx] * 64 * (double) IntensityLimit / (double)disparityLevel;
+		//dMap.at<ushort>(y,x) = final_dmap[idx];
+		idx++;
+	}
+	cv::Mat rightDMap(h, w, CV_8UC1);
+	idx = 0;
+	for(int y=0 ; y<h ; y++) for(int x=0 ; x<w ; x++)
+	{
+		rightDMap.at<uchar>(y,x) = right_final_dmap[idx];// * (double) IntensityLimit / (double)disparityLevel;
+		//rightDMap.at<ushort>(y,x) = right_final_dmap[idx] * 64 * (double) IntensityLimit / (double)disparityLevel;
+		//dMap.at<ushort>(y,x) = final_dmap[idx];
 		idx++;
 	}
 	//
 
-	cv::imwrite("dMap.bmp", dMap);
-	cv::namedWindow("testw", CV_NORMAL);
-	cv::imshow("testw",dMap);
+	cv::imwrite("leftDMap.bmp", leftDMap);
+	cv::imwrite("rightDMap.bmp", rightDMap);
+
+	cv::namedWindow("left", CV_WINDOW_KEEPRATIO);
+	cv::imshow("left",leftDMap);
+	cv::waitKey(0);
+	cv::namedWindow("right", CV_WINDOW_KEEPRATIO);
+	cv::imshow("right",rightDMap);
 	cv::waitKey(0);
 
 	system("PAUSE");

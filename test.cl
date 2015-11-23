@@ -6,6 +6,8 @@ __constant float max_gradient_cost = 2.0;
 
 __constant float lips_10b_max_color_cost    = 84.0;
 __constant float lips_10b_max_gradient_cost = 8.0;
+//__constant float lips_10b_max_color_cost    = 7;
+//__constant float lips_10b_max_gradient_cost = 2.0;
 
 __constant int mask_b = 0xFF;
 __constant int mask_g = 0xFF00;
@@ -60,6 +62,32 @@ __kernel void lips_10b_matching_cost(__global const short* l_rgb, __global const
 	for(int d = info->max_d-1 ; d >= 0  ; d--){
 		if(x > d)
 			ridx = idx-d;
+
+		float color_cost = abs(l_rgb[idx] - r_rgb[ridx]);
+
+		color_cost = fmin(color_cost, lips_10b_max_color_cost);
+
+		float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), lips_10b_max_gradient_cost);
+
+		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		result[(idx * info->max_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+	}
+}
+
+__kernel void lips_10b_matching_cost_inverse(__global const short* l_rgb, __global const float *l_gradient, 
+											 __global const short* r_rgb, __global const float *r_gradient, 
+											 __global float* result, __global match_info *info)
+{
+	// 450 -> width of image
+	// 60  -> max_disparity
+
+	const int idx = get_global_id(0);
+	const int x = idx % info->img_width;
+
+	int ridx = idx - x + info->img_width;
+	for(int d = info->max_d - 1 ; d >= 0 ; d--){
+		if( (x + d) < info->img_width )
+			ridx = idx + d;
 
 		float color_cost = abs(l_rgb[idx] - r_rgb[ridx]);
 

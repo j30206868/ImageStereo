@@ -1,6 +1,7 @@
 #include "cwz_mst.h"
 
 float cwz_mst::sigma = 0.1;
+bool cwz_mst::setWto1 = true;
 
 inline int get_1d_idx_from_2d(int x, int y, int w){
 	return y * w + x;
@@ -73,7 +74,11 @@ void cwz_mst::init(int _h, int _w, int _ch){
 	this->best_disparity = new TEleUnit[node_amt];
 
 	for(int i=0 ; i<IntensityLimit ; i++){
-		whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		//whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		if(setWto1)
+			whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		else
+			whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
 	}
 
 	this->isInit = true;

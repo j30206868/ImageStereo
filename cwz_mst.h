@@ -8,6 +8,7 @@ typedef short TEleUnit;
 class cwz_mst{
 public:
 	static float sigma;
+	static bool setWto1;
 
 	float *get_agt_result();
 
