@@ -13,7 +13,7 @@
 #include <time.h>
 
 #define IntensityLimit 256
-#define disparityLevel 100
+#define disparityLevel 140
 
 struct cl_match_elem{
 	int *rgb;

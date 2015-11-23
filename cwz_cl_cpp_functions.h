@@ -69,10 +69,15 @@ cl_device_id setup_opencl(cl_context &context, cl_int &err){
 	return devices[0];
 }
 int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
-						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int h, int w, int match_result_len){
-	cl_kernel matcher = clCreateKernel(program, "matching_cost", 0);
-	if(matcher == 0) { std::cerr << "Can't load matching_cost kernel\n"; return 0; }
-
+						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int h, int w, int match_result_len, bool inverse = false){
+		cl_kernel matcher;
+		if( inverse == false ){
+			matcher = clCreateKernel(program, "matching_cost", 0);
+			if(matcher == 0) { std::cerr << "Can't load matching_cost kernel\n"; return 0; }
+		}else{
+			matcher = clCreateKernel(program, "matching_cost_inverse", 0);
+			if(matcher == 0) { std::cerr << "Can't load matching_cost_inverse kernel\n"; return 0; }
+		}
 	match_info info;
 	info.img_height = h; info.img_width = w; info.max_d = disparityLevel;
 
