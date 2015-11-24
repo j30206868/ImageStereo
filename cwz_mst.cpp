@@ -36,7 +36,6 @@ inline int pop(int *stack, int &end){
 	return result;
 }
 
-
 float *cwz_mst::get_agt_result(){
 	return this->agt_result;
 }

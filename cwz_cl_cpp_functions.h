@@ -70,14 +70,15 @@ cl_device_id setup_opencl(cl_context &context, cl_int &err){
 }
 int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
 						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int h, int w, int match_result_len, bool inverse = false){
-		cl_kernel matcher;
-		if( inverse == false ){
-			matcher = clCreateKernel(program, "matching_cost", 0);
-			if(matcher == 0) { std::cerr << "Can't load matching_cost kernel\n"; return 0; }
-		}else{
-			matcher = clCreateKernel(program, "matching_cost_inverse", 0);
-			if(matcher == 0) { std::cerr << "Can't load matching_cost_inverse kernel\n"; return 0; }
-		}
+	cwz_timer::start();
+	cl_kernel matcher;
+	if( inverse == false ){
+		matcher = clCreateKernel(program, "matching_cost", 0);
+		if(matcher == 0) { std::cerr << "Can't load matching_cost kernel\n"; return 0; }
+	}else{
+		matcher = clCreateKernel(program, "matching_cost_inverse", 0);
+		if(matcher == 0) { std::cerr << "Can't load matching_cost_inverse kernel\n"; return 0; }
+	}
 	match_info info;
 	info.img_height = h; info.img_width = w; info.max_d = disparityLevel;
 
@@ -126,22 +127,18 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 		clReleaseMemObject(cl_match_info);
 		return 0;
 	}
-	printf("Setup kernel Time: %.6fs\n", double(clock() - step_up_kernel_s) / CLOCKS_PER_SEC);
 
-	size_t work_size = w * h;
-	clock_t tOfCLStart = clock();
+	size_t work_size = (h * w);
+	size_t local_size = 256;
+	
     /* Do your stuff here */
-	err = clEnqueueNDRangeKernel(queue, matcher, 1, 0, &work_size, 0, 0, 0, 0);
+	err = clEnqueueNDRangeKernel(queue, matcher, 1, NULL, &work_size, &local_size, 0, 0, 0);
 
 	if(err == CL_SUCCESS) {
 		err = clEnqueueReadBuffer(queue, cl_match_result, CL_TRUE, 0, sizeof(float) * match_result_len, &matching_result[0], 0, 0, 0);
 	}
-	printf("CL Time taken: %.6fs\n", (double)(clock() - tOfCLStart)/CLOCKS_PER_SEC);
 
-	if(err == CL_SUCCESS) {
-
-	}
-	else {
+	if(err != CL_SUCCESS ){
 		std::cerr << "Can't run kernel or read back data\n";	
 	}
 
@@ -154,6 +151,11 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 	clReleaseCommandQueue(queue);
 	clReleaseMemObject(cl_match_info);
 	
+	if( inverse == false )
+		cwz_timer::time_display("Left eye image cost match(+set kernel)");
+	else
+		cwz_timer::time_display("Right eye image cost match(+set kernel)");
+
 	return 1;
 }
 
@@ -210,14 +212,15 @@ T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program 
 
 	size_t offset_size[2] = {0,0};
 	size_t work_size[2] = {w, h};
-	clock_t tOfCLStart = clock();
+	
     /* Do your stuff here */
+	cwz_timer::start();
 	err = clEnqueueNDRangeKernel(queue, mdf_kernel, 2, offset_size, work_size, 0, 0, 0, 0);
 
 	if(err == CL_SUCCESS) {
 		err = clEnqueueReadBuffer(queue, cl_result, CL_TRUE, 0, sizeof(T) * node_c, &result_arr[0], 0, 0, 0);
 	}
-	printf("MDF Time taken: %fs\n", (double)(clock() - tOfCLStart)/CLOCKS_PER_SEC);
+	cwz_timer::time_display("Median Filtering");
 
 	if(err != CL_SUCCESS)  {
 		std::cout << getErrorString(err) << std::endl;

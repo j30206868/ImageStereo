@@ -14,11 +14,27 @@
 
 #define IntensityLimit 256
 #define disparityLevel 140
+#define doTreeRefinement true
 #define setWto1 false
 const float default_sigma = 0.1;
 const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
 const bool depth_post_mdf = true;
+
+class cwz_timer{
+public:
+	static void start();
+	static void t_start();
+	static double stop();
+	static double t_stop();
+	static void time_display(char *disp,int nr_frame=1);
+	static void t_time_display(char *disp,int nr_frame=1);
+private: 
+	static double m_pc_frequency; 
+	static __int64 m_counter_start;
+	static double t_pc_frequency; 
+	static __int64 t_counter_start;
+};
 
 struct cl_match_elem{
 	int *rgb;

@@ -1,4 +1,5 @@
 #include "common_func.h"
+#include <windows.h>
 
 //ÅªÀÉ®×¦s¦¨disparity map
 void readDisparityFromFile(std::string fname, int h, int w, cv::Mat &dMap){
@@ -208,3 +209,48 @@ uchar *int_1d_arr_to_gray_arr(int *color_arr, int node_c){
 	delete[] color;
 	return arr;
 }
+
+double  cwz_timer::m_pc_frequency = 0; 
+__int64 cwz_timer::m_counter_start = 0;
+double  cwz_timer::t_pc_frequency = 0; 
+__int64 cwz_timer::t_counter_start = 0;
+void cwz_timer::start()
+{
+	//m_begin=clock();
+	
+    LARGE_INTEGER li;
+    if(!QueryPerformanceFrequency(&li))
+        std::cout << "QueryPerformanceFrequency failed!\n";
+
+    m_pc_frequency = double(li.QuadPart);///1000.0;
+
+    QueryPerformanceCounter(&li);
+    m_counter_start = li.QuadPart;
+}
+void cwz_timer::t_start()
+{
+	//m_begin=clock();
+	
+    LARGE_INTEGER li;
+    if(!QueryPerformanceFrequency(&li))
+        std::cout << "QueryPerformanceFrequency failed!\n";
+
+    t_pc_frequency = double(li.QuadPart);///1000.0;
+
+    QueryPerformanceCounter(&li);
+    t_counter_start = li.QuadPart;
+}
+double cwz_timer::t_stop(){
+	LARGE_INTEGER li;
+    QueryPerformanceCounter(&li);
+    return double(li.QuadPart-t_counter_start)/t_pc_frequency;
+}
+double cwz_timer::stop()
+{
+	//m_end=clock(); return ( double(m_end-m_begin)/CLOCKS_PER_SEC );
+    LARGE_INTEGER li;
+    QueryPerformanceCounter(&li);
+    return double(li.QuadPart-m_counter_start)/m_pc_frequency;
+}
+void cwz_timer::time_display(char *disp,int nr_frame){ printf("Running time (%s) is: %5.5f Seconds.\n",disp,stop()/nr_frame);}
+void cwz_timer::t_time_display(char *disp,int nr_frame){ printf("Running time (%s) is: %5.5f Seconds.\n",disp,t_stop()/nr_frame);}
