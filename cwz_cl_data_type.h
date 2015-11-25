@@ -2,10 +2,20 @@
 #define CWZ_CL_DATA_TYPE_H
 
 typedef struct {
-	int max_d;
+	int max_x_d;
+	int max_y_d;
+	int node_c;
 	int img_width;
 	int img_height;
+
+	void printf_match_info(std::string str);
 } match_info;
+
+void match_info::printf_match_info(std::string str){
+	printf("-- match_info(%s) --\n", str);
+	printf("img_width:%3d | img_height:%3d | node_c:%6d\n", img_width, img_height, node_c);
+	printf("max_x_d:%3d | max_y_d:%3d\n", max_x_d, max_y_d);
+}
 
 const char *getErrorString(cl_int error)
 {

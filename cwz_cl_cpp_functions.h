@@ -69,7 +69,10 @@ cl_device_id setup_opencl(cl_context &context, cl_int &err){
 	return devices[0];
 }
 int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
-						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int h, int w, int match_result_len, bool inverse = false){
+						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int match_result_len, match_info &info, bool inverse = false)
+{
+	int w = info.img_width;
+	int h = info.img_height;
 	cwz_timer::start();
 	cl_kernel matcher;
 	if( inverse == false ){
@@ -79,8 +82,6 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 		matcher = clCreateKernel(program, "matching_cost_inverse", 0);
 		if(matcher == 0) { std::cerr << "Can't load matching_cost_inverse kernel\n"; return 0; }
 	}
-	match_info info;
-	info.img_height = h; info.img_width = w; info.max_d = disparityLevel;
 
 	time_t step_up_kernel_s = clock();
 
@@ -160,16 +161,17 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 
 template<class T>
 T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
-						   T *color_1d_arr, int node_c, int h, int w, bool apply_median_filter = true)
+						   T *color_1d_arr, match_info &info, bool apply_median_filter = true)
 {
 	if(!apply_median_filter){
 		return color_1d_arr;
 	}
+
+	int w = info.img_width;
+	int h = info.img_height;
+	int node_c = info.node_c;
 							   
 	cl_kernel mdf_kernel;
-
-	match_info info;
-	info.img_height = h; info.img_width = w; info.max_d = disparityLevel;
 
 	if(eqTypes<int, T>()){
 		mdf_kernel = clCreateKernel(program, "MedianFilterBitonic", 0);

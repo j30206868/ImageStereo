@@ -16,6 +16,7 @@
 #define disparityLevel 30
 #define doTreeRefinement true
 #define setWto1 false
+#define max_d_to_img_len_pow 4
 const float default_sigma = 0.1;
 const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
@@ -51,6 +52,8 @@ struct cl_match_elem{
 		this->gradient = new float[node_c];
 	}
 };
+
+void cvmat_subsampling(cv::Mat &origin, cv::Mat &subsampled, int ch, int sub_pow);
 
 template <class T>T *new_1d_arr(int len, T init_value){
 	T *arr = new T[len];

@@ -39,9 +39,13 @@ inline int pop(int *stack, int &end){
 float *cwz_mst::get_agt_result(){
 	return this->agt_result;
 }
-void cwz_mst::init(int _h, int _w, int _ch){
+void cwz_mst::init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis){
 	this->h = _h;
 	this->w = _w;
+
+	this->max_x_disparity = max_x_dis;
+	this->max_y_disparity = max_y_dis;
+
 	this->node_amt = _h * _w;
 	this->edge_amt = (_h-1) * _w + h * (_w-1);
 	this->channel = _ch;
@@ -68,7 +72,7 @@ void cwz_mst::init(int _h, int _w, int _ch){
 
 	for(int i=0 ; i<IntensityLimit ; i++){ histogram[i] = 0; }
 
-	this->agt_result = new float[ node_amt * disparityLevel ];
+	this->agt_result = new float[ node_amt * max_x_disparity ];
 	this->best_disparity = new TEleUnit[node_amt];
 
 	for(int i=0 ; i<IntensityLimit ; i++){
@@ -189,13 +193,13 @@ void cwz_mst::cost_agt(){
 	//up agt
 	for(int i = node_amt-1 ; i >= 0 ; i--){
 		int node_i = node_idx_from_p_to_c[i];
-		int node_disparity_i = node_i * disparityLevel;
+		int node_disparity_i = node_i * max_x_disparity;
 
 		for(int child_c=0 ; child_c < child_node_num[node_i] ; child_c++){
 			int child_i = child_node_list[node_i][child_c];
-			int child_disparity_i = child_i * disparityLevel;
+			int child_disparity_i = child_i * max_x_disparity;
 
-			for(int d=0 ; d<disparityLevel ; d++){
+			for(int d=0 ; d<max_x_disparity ; d++){
 				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * whistogram[ node_weight[child_i] ];
 			}
 		}
@@ -204,13 +208,13 @@ void cwz_mst::cost_agt(){
 	for(int i=1 ; i<node_amt ; i++){
 		int node_i = node_idx_from_p_to_c[i];
 		int parent_i = node_parent_id[node_i];
-		int node_disparity_i = node_i * disparityLevel;
-		int parent_disparity_i = parent_i * disparityLevel;
+		int node_disparity_i = node_i * max_x_disparity;
+		int parent_disparity_i = parent_i * max_x_disparity;
 
 		float w = whistogram[ node_weight[ node_i ] ];
 		float one_m_sqw = (1.0 - w * w);
 
-		for(int d=0 ; d<disparityLevel ; d++){
+		for(int d=0 ; d<max_x_disparity ; d++){
 			agt_result[node_disparity_i+d] = w         * agt_result[ parent_disparity_i+d ] +
 											 one_m_sqw * agt_result[node_disparity_i+d];
 		}
@@ -220,16 +224,16 @@ void cwz_mst::cost_agt(float *match_cost_result){
 	//up agt
 	for(int i = node_amt-1 ; i >= 0 ; i--){
 		int node_i = node_idx_from_p_to_c[i];
-		int node_disparity_i = node_i * disparityLevel;
+		int node_disparity_i = node_i * max_x_disparity;
 
-		for(int d=0 ; d<disparityLevel ; d++)
+		for(int d=0 ; d<max_x_disparity ; d++)
 			agt_result[ node_disparity_i+d ] = match_cost_result[ node_disparity_i+d ];
 
 		for(int child_c=0 ; child_c < child_node_num[node_i] ; child_c++){
 			int child_i = child_node_list[node_i][child_c];
-			int child_disparity_i = child_i * disparityLevel;
+			int child_disparity_i = child_i * max_x_disparity;
 
-			for(int d=0 ; d<disparityLevel ; d++){
+			for(int d=0 ; d<max_x_disparity ; d++){
 				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * whistogram[ node_weight[child_i] ];
 			}
 		}
@@ -238,13 +242,13 @@ void cwz_mst::cost_agt(float *match_cost_result){
 	for(int i=1 ; i<node_amt ; i++){
 		int node_i = node_idx_from_p_to_c[i];
 		int parent_i = node_parent_id[node_i];
-		int node_disparity_i = node_i * disparityLevel;
-		int parent_disparity_i = parent_i * disparityLevel;
+		int node_disparity_i = node_i * max_x_disparity;
+		int parent_disparity_i = parent_i * max_x_disparity;
 
 		float w = whistogram[ node_weight[ node_i ] ];
 		float one_m_sqw = (1.0 - w * w);
 
-		for(int d=0 ; d<disparityLevel ; d++){
+		for(int d=0 ; d<max_x_disparity ; d++){
 			agt_result[node_disparity_i+d] = w         * agt_result[ parent_disparity_i+d ] +
 											 one_m_sqw * agt_result[node_disparity_i+d];
 		}
@@ -252,11 +256,11 @@ void cwz_mst::cost_agt(float *match_cost_result){
 }
 TEleUnit *cwz_mst::pick_best_dispairty(){
 	for(int i=0 ; i<this->node_amt ; i++){
-		int i_ = i * disparityLevel;
+		int i_ = i * max_x_disparity;
 
 		float min_cost = agt_result[i_+0];
 		best_disparity[i] = 0;
-		for(int d=1 ; d<disparityLevel ; d++){
+		for(int d=1 ; d<max_x_disparity ; d++){
 			if( agt_result[i_+d] < min_cost ){
 				best_disparity[i] = d;
 				min_cost = agt_result[i_+d];
@@ -326,120 +330,13 @@ void cwz_mst::reinit(){
 	memset(this->child_node_num, 0, sizeof(int) * this->node_amt); 
 	memset(this->node_parent_id, -1, sizeof(int) * this->node_amt); 
 }
-//for testing
-void cwz_mst::test_correctness(){
-	if( eqTypes<TEleUnit, uchar>() )
-	{//8UC1 test
-		printf("\n*********************************************\n");
-		printf("cwz_mst::test_correctness() 8UC1 test called:\n");
-		
-		int h = 3, w = 3;
-		int node_c = w*h;
-		uchar *arr = new uchar[node_c];
-		arr[0] = 255;	arr[1] = 254;	arr[2] = 250;
-		arr[3] = 171;	arr[4] =  20;	arr[5] =   0;
-		arr[6] = 150;	arr[7] =  11;	arr[8] =  11;
 
-		this->init(h, w, 1);
-		this->set_img(arr);
-		this->build_edges();
-		this->counting_sort();
-		this->kruskal_mst();
-		this->build_tree();
-
-		float *match_cost = new float[node_c];
-		match_cost[0] = 0;	match_cost[1] =  1;	match_cost[2] = 2;
-		match_cost[3] = 3;	match_cost[4] =  4;	match_cost[5] = 5;
-		match_cost[6] = 6;	match_cost[7] =  7;	match_cost[8] = 8;
-
-		printf("node_idx_from_p_to_c: \n");
-		for(int i=0 ; i<node_c ; i++){
-			printf("	node_idx_from_p_to_c[%2d]: %2d\n", i, node_idx_from_p_to_c[i]);
-		}
-		printf("weights: \n");
-		for(int i=0 ; i<node_c ; i++){
-			printf("	node_weight[%2d]: %2d\n", i, node_weight[i]);
-		}
-		printf("node_parent_id: \n");
-		for(int i=0 ; i<node_c ; i++){
-			printf("	node_parent_id[%2d]: %2d\n", i, node_parent_id[i]);
-		}
-		printf("child_node_list upward: \n");
-		for(int i = node_amt-1 ; i >= 0 ; i--){
-			int node_i = node_idx_from_p_to_c[i];
-			printf("	node[%2d]:\n", node_i);
-			for(int child_c=0 ; child_c < child_node_num[node_i] ; child_c++){
-				int child_i = child_node_list[node_i][child_c];
-				printf("		child[%2d]\n", child_i);
-			}
-		}
-		printf("child_node_list downward: \n");
-		for(int i=1 ; i<node_amt ; i++){
-			int node_i = node_idx_from_p_to_c[i];
-			int parent_i = node_parent_id[node_i];
-
-			printf("	node[%2d]:\n", node_i);
-			printf("		parent[%2d]\n", parent_i);
-		}
-		printf("whistogram:\n");
-		for(int i = 0 ; i < node_amt ; i++){
-			printf("node[%2d].histogram[w:%3d] = %f\n",i, node_weight[i], whistogram[ node_weight[i] ]);
-		}
-		this->cost_agt(match_cost);
-		/*printf("agt_result:\n");
-		for(int i = 0 ; i < node_amt ; i++){
-			printf("node[%2d] agt:%f\n", i, agt_result);
-		}*/
-		/*
-		//reuse test
-		printf("--	--	reuseness test	--	--\n");
-		arr[0] = 255;	arr[1] = 254;	arr[2] =   0;
-		arr[3] = 171;	arr[4] =  20;	arr[5] =   0;
-		arr[6] = 150;	arr[7] =  11;	arr[8] =  11;
-		this->reinit();
-		this->build_edges();
-		this->counting_sort();
-		this->kruskal_mst();
-		this->build_tree();*/
-		//free memory
-
-		printf("\n*********************************************\n");
+void cwz_mst::updateSigma(float _sigma){
+	cwz_mst::sigma = _sigma;
+	for(int i=0 ; i<IntensityLimit ; i++){
+		if(setWto1)
+			whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		else
+			whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
 	}
 }
-
-/*float *cwz_mst_filter::up_cost_agt(float *match_cost_result, int *node_parent_id, int **child_node_list, int *child_node_num, int *node_weight, int *node_idx_from_p_to_c, float *histogram, int node_amt){
-	float *agt_result = new float[ node_amt * disparityLevel ];
-	//up agt
-	for(int i = node_amt-1 ; i >= 0 ; i--){
-		int node_i = node_idx_from_p_to_c[i];
-		int node_disparity_i = node_i * disparityLevel;
-
-		for(int d=0 ; d<disparityLevel ; d++)
-			agt_result[ node_disparity_i+d ] = match_cost_result[ node_disparity_i+d ];
-
-		for(int child_c=0 ; child_c < child_node_num[node_i] ; child_c++){
-			int child_i = child_node_list[node_i][child_c];
-			int child_disparity_i = child_i * disparityLevel;
-
-			for(int d=0 ; d<disparityLevel ; d++){
-				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * histogram[ node_weight[child_i] ];
-			}
-		}
-	}
-	//down agt
-	for(int i=1 ; i<node_amt ; i++){
-		int node_i = node_idx_from_p_to_c[i];
-		int parent_i = node_parent_id[node_i];
-		int node_disparity_i = node_i * disparityLevel;
-		int parent_disparity_i = parent_i * disparityLevel;
-
-		float w = histogram[ node_weight[ node_i ] ];
-		float one_m_sqw = (1.0 - w * w);
-
-		for(int d=0 ; d<disparityLevel ; d++){
-			agt_result[node_disparity_i+d] = w           * agt_result[ parent_disparity_i+d ] +
-											 (one_m_sqw) * agt_result[node_disparity_i+d];
-		}
-	}
-	return agt_result;
-}*/

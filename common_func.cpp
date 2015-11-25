@@ -255,3 +255,28 @@ double cwz_timer::stop()
 }
 void cwz_timer::time_display(char *disp,int nr_frame){ printf("Running time (%s) is: %5.5f Seconds.\n",disp,stop()/nr_frame);}
 void cwz_timer::t_time_display(char *disp,int nr_frame){ printf("Running time (%s) is: %5.5f Seconds.\n",disp,t_stop()/nr_frame);}
+
+void cvmat_subsampling(cv::Mat &origin, cv::Mat &subsampled, int ch, int sub_pow){
+	int s_h = origin.rows / sub_pow;
+	int s_w = origin.cols / sub_pow;
+	if(ch == 1)
+		subsampled = cv::Mat(s_h, s_w, CV_8UC1);
+	else
+		subsampled = cv::Mat(s_h, s_w, CV_8UC3);
+
+	for(int s_y = 0 ; s_y < s_h ; s_y++){
+		int y = s_y * sub_pow;
+		for(int s_x = 0 ; s_x < s_w ; s_x++){
+			int x = s_x * sub_pow;
+			if(ch == 1){
+				subsampled.at<uchar>(s_y,s_x) = origin.at<uchar>(y,x);
+			}else{
+				int _s_x = s_x * 3;
+				int _x   =   x * 3;
+				subsampled.at<uchar>(s_y,_s_x  ) = origin.at<uchar>(y, _x  );
+				subsampled.at<uchar>(s_y,_s_x+1) = origin.at<uchar>(y, _x+1);
+				subsampled.at<uchar>(s_y,_s_x+2) = origin.at<uchar>(y, _x+2);
+			}
+		}
+	}
+}

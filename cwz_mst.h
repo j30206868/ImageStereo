@@ -13,7 +13,7 @@ public:
 
 	float *get_agt_result();
 
-	void init(int _h, int _w, int _ch);
+	void init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis);
 	void set_img(TEleUnit *_img);
 	//
 	void build_edges();
@@ -29,12 +29,15 @@ public:
 	void profile_mst();
 	//for reuse
 	void reinit();
-	//test use function
-	void test_correctness();
+	//update sigma
+	void updateSigma(float _sigma);
 
 	TEleUnit *best_disparity;
 private:
 	int findset(int i);
+
+	int max_x_disparity;
+	int max_y_disparity;
 
 	bool isInit;
 	bool hasImg;
@@ -70,8 +73,5 @@ private:
 	int channel;
 };
 
-/*namespace cwz_mst_filter{
-	float *up_cost_agt(float *match_cost_result, int *node_parent_id, int **child_node_list, int *child_node_num, int *node_weight, int *node_idx_from_p_to_c, float *histogram, int node_amt);
-};*/
 
 #endif

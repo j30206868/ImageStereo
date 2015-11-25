@@ -9,7 +9,9 @@ __constant int mask_g = 0xFF00;
 __constant int mask_r = 0xFF0000;
 
 typedef struct {
-	int max_d;
+	int max_x_d;
+	int max_y_d;
+	int node_c;
 	int img_width;
 	int img_height;
 } match_info;
@@ -25,7 +27,7 @@ __kernel void matching_cost(__global const int* l_rgb, __global const float *l_g
 	const int x = idx % info->img_width;
 
 	int ridx = idx - x;
-	for(int d = info->max_d-1 ; d >= 0  ; d--){
+	for(int d = info->max_x_d-1 ; d >= 0  ; d--){
 		if(x > d)
 			ridx = idx-d;
 
@@ -38,7 +40,7 @@ __kernel void matching_cost(__global const int* l_rgb, __global const float *l_g
 		float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
 
 		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
-		result[(idx * info->max_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
 	}
 }
 __kernel void matching_cost_inverse(__global const int* l_rgb, __global const float *l_gradient, 
@@ -52,7 +54,7 @@ __kernel void matching_cost_inverse(__global const int* l_rgb, __global const fl
 	const int x = idx % info->img_width;
 
 	int ridx = idx - x + info->img_width - 1;
-	for(int d = info->max_d-1 ; d >= 0  ; d--){
+	for(int d = info->max_x_d-1 ; d >= 0  ; d--){
 		if((x+d) < info->img_width)
 			ridx = idx+d;
 
@@ -65,7 +67,7 @@ __kernel void matching_cost_inverse(__global const int* l_rgb, __global const fl
 		float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
 
 		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
-		result[(idx * info->max_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
 	}
 }
 
