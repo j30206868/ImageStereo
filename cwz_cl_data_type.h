@@ -8,10 +8,10 @@ typedef struct {
 	int img_width;
 	int img_height;
 
-	void printf_match_info(std::string str);
+	void printf_match_info(const char *str);
 } match_info;
 
-void match_info::printf_match_info(std::string str){
+void match_info::printf_match_info(const char *str){
 	printf("-- match_info(%s) --\n", str);
 	printf("img_width:%3d | img_height:%3d | node_c:%6d\n", img_width, img_height, node_c);
 	printf("max_x_d:%3d | max_y_d:%3d\n", max_x_d, max_y_d);

@@ -18,12 +18,14 @@
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_mst.h"
 
+const char* LeftIMGName  = "tsukuba/scene1.row3.col1.ppm"; 
+const char* RightIMGName = "tsukuba/scene1.row3.col3.ppm";
 //const char* LeftIMGName  = "face/face1.png"; 
 //const char* RightIMGName = "face/face2.png";
 //const char* LeftIMGName  = "dolls/dolls1.png"; 
 //const char* RightIMGName = "dolls/dolls2.png";
-const char* LeftIMGName  = "structure/struct_left.bmp"; 
-const char* RightIMGName = "structure/struct_right.bmp";
+//const char* LeftIMGName  = "structure/struct_left.bmp"; 
+//const char* RightIMGName = "structure/struct_right.bmp";
 
 void compute_gradient(float*gradient, uchar **gray_image, int h, int w)
 {
@@ -200,10 +202,56 @@ uchar* refinement(uchar *left_dmap, uchar *right_dmap, cwz_mst &mstL, cwz_mst &m
 	return refined_dmap;
 }
 
+uchar *cwz_up_sampling(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
+						 cv::Mat left_b, cwz_mst &mstL_b, match_info &info, match_info &sub_info, uchar *disparity_map, 
+						 int down_sample_pow, int disparity_to_img_len_pow, bool do_mst_mdf, bool do_dmap_mdf)
+{
+	mstL_b.init(info.img_height, info.img_width, 1, info.max_x_d, info.max_y_d);
+	mstL_b.updateSigma( cwz_mst::sigma/3 );
+	//建原本size大小的tree
+	int *left_color_1d_arr  = c3_mat_to_1d_int_arr(left_b , info.img_height, info.img_width);
+	uchar *left_gray_1d_arr  = int_1d_arr_to_gray_arr(left_color_1d_arr , info.node_c);
+	uchar *left_gray_1d_arr_for_mst;
+	if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, info, do_mst_mdf)) )
+	{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
+	mstL_b.set_img(left_gray_1d_arr_for_mst);
+	cwz_timer::start();
+	mstL_b.mst();
+	cwz_timer::time_display("original size left mst");
+	//用subsampled depth map算cost
+	int cost_len = info.img_width * info.img_height * info.max_x_d;
+	float *agt_cost = mstL_b.get_agt_result();
+	memset(agt_cost, 0, sizeof(float) * cost_len);
+	int cen_ofset = down_sample_pow/2;
+	for(int s_y=0 ; s_y<sub_info.img_height; s_y++)
+	{
+		int y = s_y * down_sample_pow;
+		for(int s_x=0 ; s_x<sub_info.img_width; s_x++)
+		{
+				int x = s_x * down_sample_pow;
+				int s_i = s_y * sub_info.img_width + s_x;
+				int idx    = ((y + cen_ofset) * info.img_width + (x + cen_ofset)) * info.max_x_d;
+				int best_d = disparity_map[ s_i ] * (info.max_x_d / sub_info.max_x_d);
+
+				if(best_d > 2)
+					for(int d=0 ; d < info.max_x_d ; d++){
+						agt_cost[idx+d] = std::abs(d - best_d);
+					}
+		}
+	}
+	//cost aggregate
+	uchar *upsampled_dmap;
+	mstL_b.cost_agt();
+	upsampled_dmap = mstL_b.pick_best_dispairty();
+	if( !(upsampled_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, upsampled_dmap, info, do_dmap_mdf)) )
+	{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
+	return upsampled_dmap;
+}
+
 int main()
 {
 	//cv::Mat hand = cv::imread("hand.ppm", CV_LOAD_IMAGE_COLOR);
-	const int down_sample_pow = 7;
+	const int down_sample_pow = 1;
 
 	cwz_mst mstL_b;
 	cwz_mst mstL;
@@ -282,6 +330,7 @@ int main()
 	sub_info.max_x_d = sub_w / max_d_to_img_len_pow; 
 	sub_info.max_y_d = sub_h / max_d_to_img_len_pow; 
 	sub_info.node_c = sub_h * sub_w;
+	sub_info.printf_match_info("縮小影像資訊");
 
 cwz_timer::t_start();
 	uchar *left_dmap;
@@ -311,51 +360,14 @@ cwz_timer::t_start();
 	match_info info;
 	info.img_height = left_b.rows; 
 	info.img_width = left_b.cols; 
-	//info.max_y_d = info.img_height * max_d_to_img_len_ratio; 
-	//info.max_x_d = info.img_width * max_d_to_img_len_ratio; 
 	info.max_y_d = info.img_height / max_d_to_img_len_pow; 
 	info.max_x_d = info.img_width  / max_d_to_img_len_pow; 
 	info.node_c = info.img_height * info.img_width;
-	info.printf_match_info("original size image");
-	mstL_b.init(info.img_height, info.img_width, 1, info.max_x_d, info.max_y_d);
-	mstL_b.updateSigma( cwz_mst::sigma/3 );
-	//建原本size大小的tree
-	int *left_color_1d_arr  = c3_mat_to_1d_int_arr(left_b , info.img_height, info.img_width);
-	uchar *left_gray_1d_arr  = int_1d_arr_to_gray_arr(left_color_1d_arr , info.node_c);
-	uchar *left_gray_1d_arr_for_mst;
-	if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, info, true)) )
-	{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
-	mstL_b.set_img(left_gray_1d_arr_for_mst);
-	cwz_timer::start();
-	mstL_b.mst();
-	cwz_timer::time_display("original size left mst");
-	//用subsampled depth map算cost
-	int cost_len = info.img_width * info.img_height * info.max_x_d;
-	float *agt_cost = mstL_b.get_agt_result();
-	memset(agt_cost, 0, sizeof(float) * cost_len);
-	int cen_ofset = down_sample_pow/2;
-	for(int s_y=0 ; s_y<sub_info.img_height; s_y++)
-	{
-		int y = s_y * down_sample_pow;
-		for(int s_x=0 ; s_x<sub_info.img_width; s_x++)
-		{
-				int x = s_x * down_sample_pow;
-				int s_i = s_y * sub_info.img_width + s_x;
-				int idx    = ((y + cen_ofset) * info.img_width + (x + cen_ofset)) * info.max_x_d;
-				//int best_d = refined_dmap[ s_i ] * down_sample_pow;
-				int best_d = refined_dmap[ s_i ] * (info.max_x_d / sub_info.max_x_d);
-
-				if(best_d > 2)
-					for(int d=0 ; d < info.max_x_d ; d++){
-						agt_cost[idx+d] = std::abs(d - best_d);
-					}
-		}
-	}
-	//cost aggregate
+	info.printf_match_info("原影像資訊");
 	uchar *upsampled_dmap;
-	mstL_b.cost_agt();
-	upsampled_dmap = mstL_b.pick_best_dispairty();
-
+	if(	!(upsampled_dmap = cwz_up_sampling(context, device, program, err, left_b, mstL_b, info, sub_info, refined_dmap, 
+										   down_sample_pow, max_d_to_img_len_pow, true, true)) )
+	{ printf("cwz_up_sampling failed"); return 0; }
 	//
 cwz_timer::t_time_display("total");
 
