@@ -1,6 +1,11 @@
 #include "common_func.h"
 #include <windows.h>
 
+double  cwz_timer::m_pc_frequency = 0; 
+__int64 cwz_timer::m_counter_start = 0;
+double  cwz_timer::t_pc_frequency = 0; 
+__int64 cwz_timer::t_counter_start = 0;
+
 //ÅªÀÉ®×¦s¦¨disparity map
 void readDisparityFromFile(std::string fname, int h, int w, cv::Mat &dMap){
 	std::ifstream fin;
@@ -210,10 +215,6 @@ uchar *int_1d_arr_to_gray_arr(int *color_arr, int node_c){
 	return arr;
 }
 
-double  cwz_timer::m_pc_frequency = 0; 
-__int64 cwz_timer::m_counter_start = 0;
-double  cwz_timer::t_pc_frequency = 0; 
-__int64 cwz_timer::t_counter_start = 0;
 void cwz_timer::start()
 {
 	//m_begin=clock();

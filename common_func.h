@@ -13,7 +13,7 @@
 #include <time.h>
 
 #define IntensityLimit 256
-#define disparityLevel 140
+#define disparityLevel 30
 #define doTreeRefinement true
 #define setWto1 false
 const float default_sigma = 0.1;

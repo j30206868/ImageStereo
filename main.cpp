@@ -202,6 +202,7 @@ uchar* refinement(uchar *left_dmap, uchar *right_dmap, cwz_mst &mstL, cwz_mst &m
 int main()
 {
 	//cv::Mat hand = cv::imread("hand.ppm", CV_LOAD_IMAGE_COLOR);
+	const int down_sample_pow = 5;
 
 	cwz_mst mstL;
 	cwz_mst mstR;
@@ -221,15 +222,15 @@ int main()
 	//cv::imwrite("hand_mst_no_ctmf.bmp", ppmimg);
 
 	//build MST
-	cv::Mat left_b = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
+	/*cv::Mat left_b = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
 	cv::Mat right_b = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
 
 	cv::Mat left; 
 	cv::Mat right; 
-	cv::resize(left_b, left, cv::Size(left_b.cols/1, left_b.rows/1));
-	cv::resize(right_b, right, cv::Size(right_b.cols/1, right_b.rows/1));
+	cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
+	cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));*/
 
-	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
+	cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
     if( fs.isOpened() == false){
         printf( "No More....Quitting...!" );
         return 0;
@@ -240,26 +241,31 @@ int main()
 	fs["right"] >> matR;                
     fs.release();
 
-	cv::Mat left = cv::Mat(480, 640, CV_8UC3);
-	cv::Mat right = cv::Mat(480, 640, CV_8UC3);
+	cv::Mat left_b = cv::Mat(480, 640, CV_8UC3);
+	cv::Mat right_b = cv::Mat(480, 640, CV_8UC3);
 
-	for(int y=0; y<left.rows ; y++){
+	for(int y=0; y<left_b.rows ; y++){
 		int x_ = 0;
-		for(int x=0; x<left.cols ; x++)
+		for(int x=0; x<left_b.cols ; x++)
 		{
 			uchar lvalue = matL.at<unsigned short>(y, x) / 4;
-			left.at<uchar>(y, x_  ) = lvalue;
-			left.at<uchar>(y, x_+1) = lvalue;
-			left.at<uchar>(y, x_+2) = lvalue;
+			left_b.at<uchar>(y, x_  ) = lvalue;
+			left_b.at<uchar>(y, x_+1) = lvalue;
+			left_b.at<uchar>(y, x_+2) = lvalue;
 
 			uchar rvalue = matR.at<unsigned short>(y, x) / 4;
-			right.at<uchar>(y, x_  ) = rvalue;
-			right.at<uchar>(y, x_+1) = rvalue;
-			right.at<uchar>(y, x_+2) = rvalue;
+			right_b.at<uchar>(y, x_  ) = rvalue;
+			right_b.at<uchar>(y, x_+1) = rvalue;
+			right_b.at<uchar>(y, x_+2) = rvalue;
 
 			x_+=3;
 		}
 	}
+
+	cv::Mat left; 
+	cv::Mat right; 
+	cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
+	cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));
 
 	/************************************/
 	int w = left.cols;
