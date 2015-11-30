@@ -340,3 +340,30 @@ void cwz_mst::updateSigma(float _sigma){
 			whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
 	}
 }
+
+void compute_gradient(float*gradient, uchar **gray_image, int h, int w)
+{
+	float gray,gray_minus,gray_plus;
+	int node_idx = 0;
+	for(int y=0;y<h;y++)
+	{
+		gray_minus=gray_image[y][0];
+		gray=gray_plus=gray_image[y][1];
+		gradient[node_idx]=gray_plus-gray_minus+127.5;
+
+		node_idx++;
+
+		for(int x=1;x<w-1;x++)
+		{
+			gray_plus=gray_image[y][x+1];
+			gradient[node_idx]=0.5*(gray_plus-gray_minus)+127.5;
+
+			gray_minus=gray;
+			gray=gray_plus;
+			node_idx++;
+		}
+		
+		gradient[node_idx]=gray_plus-gray_minus+127.5;
+		node_idx++;
+	}
+}

@@ -72,6 +72,6 @@ private:
 	int node_amt;
 	int channel;
 };
-
+void compute_gradient(float*gradient, uchar **gray_image, int h, int w);
 
 #endif

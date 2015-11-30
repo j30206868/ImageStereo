@@ -3,6 +3,7 @@ Release/*
 face/*
 dolls/*
 tsukuba/*
+DoublePointerTest.cpp
 *.bmp
 *.ppm
 *.txt

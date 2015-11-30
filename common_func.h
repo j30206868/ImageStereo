@@ -13,7 +13,6 @@
 #include <time.h>
 
 #define IntensityLimit 256
-#define disparityLevel 30
 #define doTreeRefinement true
 #define setWto1 false
 #define max_d_to_img_len_pow 4
