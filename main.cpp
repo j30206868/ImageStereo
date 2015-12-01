@@ -28,207 +28,134 @@
 const char* LeftIMGName  = "structure/struct_left.bmp"; 
 const char* RightIMGName = "structure/struct_right.bmp";
 
-void img_rotate_8UC1(double degree, cv::Mat before){
-	cv::Mat after = cv::Mat(before.rows, before.cols, CV_8UC1);
+void apply_match_cost_to_bf(int max_disparity, int h, int w, float *match_cost){
+	const int buffer_size = 160;
+	cv::Mat inputs[buffer_size];
+	cv::Mat outputs[buffer_size];
 
-	//inverse mapping 逆推回去before抓對應點到after
-	double radian = -1 * (degree * 3.1415926 / 180.0);
-
-	for(int y=0 ; y<before.rows ; y++)
-	for(int x=0 ; x<before.cols ; x++)
-	{
-		int before_x = std::floor( x * cos(radian) - y * sin(radian) );
-		int before_y = std::floor( x * sin(radian) + y * cos(radian) );
-		uchar pixel;
-	
-		if((before_x >= 0 && before_x <before.cols) &&
-			(before_y >= 0 && before_y <before.rows) )
+	if(buffer_size < max_disparity){
+		printf("apply_match_cost_to_bf: buffer_size < max_disparity, error.\n");
+		system("PAUSE");
+	}
+	//放入值
+	for(int d=0 ; d < max_disparity ; d++){
+		inputs[d] = cv::Mat(h, w, CV_32FC1);
+		
+		int idx = 0 + d;
+		for(int y=0 ; y<h ; y++)
+		for(int x=0 ; x<w ; x++)
 		{
-			pixel = before.at<uchar>(before_y, before_x);
-		}else{
-			pixel = 0;
-		}
+			inputs[d].at<float>(y, x) = match_cost[idx];
 
-		after.at<uchar>(y, x) = pixel;
+			idx += max_disparity;
+		}
+	}
+
+	//bilateral
+	for(int d=0 ; d < max_disparity ; d++){
+		cv::bilateralFilter(inputs[d], outputs[d], 15, 60, 60 );
+	}
+
+	//放回值
+	for(int d=0 ; d < max_disparity ; d++){
+		int idx = 0 + d;
+		for(int y=0 ; y<h ; y++)
+		for(int x=0 ; x<w ; x++)
+		{
+			match_cost[idx] = outputs[d].at<float>(y, x);
+
+			idx += max_disparity;
+		}
 	}
 }
 
 int main()
 {
-
-	//cv::Mat hand = cv::imread("hand.ppm", CV_LOAD_IMAGE_GRAYSCALE);
-	//img_rotate_8UC1(2, hand);
-	const int down_sample_pow = 8;
-
-	cwz_mst mstL_b;
-	cwz_mst mstL;
-	cwz_mst mstR;
-
-	/*******************************************************
-							 OpenCL
-	*******************************************************/
 	cl_int err;
 	cl_context context;
 	cl_device_id device = setup_opencl(context, err);
 
 	cl_program program = load_program(context, "test.cl");
 	if(program == 0) { std::cerr << "Can't load or build program\n"; clReleaseContext(context); return 0; }
+	//OpenCL Build
 
-	//cv::Mat ppmimg = cv::imread("hand.ppm");
-	//cv::imwrite("hand_mst_no_ctmf.bmp", ppmimg);
+	cv::Mat imL = cv::imread(LeftIMGName , CV_LOAD_IMAGE_COLOR);
+	cv::Mat imR = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
 
-	//build MST
-	cv::Mat left_b = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
-	cv::Mat right_b = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
+	int *left_color  = c3_mat_to_1d_int_arr(imL, imL.rows, imL.cols);
+	int *right_color = c3_mat_to_1d_int_arr(imR, imR.rows, imR.cols);
 
-	cv::Mat left; 
-	cv::Mat right; 
-	cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
-	cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));
-	//cvmat_subsampling(left_b , left , 3, down_sample_pow);
-	//cvmat_subsampling(right_b, right, 3, down_sample_pow);
-	/************************************/
-
-	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
-    if( fs.isOpened() == false){
-        printf( "No More....Quitting...!" );
-        return 0;
-    }
-
-    cv::Mat matL , matR; //= Mat(480, 640, CV_16UC1);
-    fs["left"] >> matL; 
-	fs["right"] >> matR;                
-    fs.release();
-
-	cv::Mat left_b = cv::Mat(480, 640, CV_8UC3);
-	cv::Mat right_b = cv::Mat(480, 640, CV_8UC3);
-
-	for(int y=0; y<left_b.rows ; y++){
-		int x_ = 0;
-		for(int x=0; x<left_b.cols ; x++)
-		{
-			uchar lvalue = matL.at<unsigned short>(y, x) / 4;
-			left_b.at<uchar>(y, x_  ) = lvalue;
-			left_b.at<uchar>(y, x_+1) = lvalue;
-			left_b.at<uchar>(y, x_+2) = lvalue;
-
-			uchar rvalue = matR.at<unsigned short>(y, x) / 4;
-			right_b.at<uchar>(y, x_  ) = rvalue;
-			right_b.at<uchar>(y, x_+1) = rvalue;
-			right_b.at<uchar>(y, x_+2) = rvalue;
-
-			x_+=3;
-		}
-	}
-
-	cv::Mat left; 
-	cv::Mat right; 
-	cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
-	cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));
-
-	/************************************/
-//sub sampling and producing sub sampled depth map
-	int sub_w = left.cols;
-	int sub_h = left.rows;
-
-	match_info sub_info;
-	sub_info.img_height = sub_h; 
-	sub_info.img_width = sub_w; 
-	sub_info.max_x_d = sub_w / max_d_to_img_len_pow; 
-	sub_info.max_y_d = sub_h / max_d_to_img_len_pow; 
-	sub_info.node_c = sub_h * sub_w;
-	sub_info.printf_match_info("縮小影像資訊");
-
-cwz_timer::t_start();
-	uchar *left_dmap;
-	if( !(left_dmap = cwz_dmap_generate(context, device, program, err, left, right, mstL, sub_info, false)) )
-	{printf( "cwz_dmap_generate left_dmap failed...!" );return 0;}
-
-	uchar *right_dmap;
-	if( !(right_dmap = cwz_dmap_generate(context, device, program, err, right, left, mstR, sub_info, true)) )
-	{printf( "cwz_dmap_generate right_dmap failed...!" );return 0;}
-
-	uchar *refined_dmap;
-	cwz_timer::start();
-	refined_dmap = refinement(left_dmap, right_dmap, mstL, mstR, sub_info);
-	cwz_timer::time_display("calc_new_cost_after_left_right_check");
-
-	cv::Mat refinedDMap(sub_h, sub_w, CV_8U);
-	int idx = 0;
-	for(int y=0 ; y<sub_h ; y++) for(int x=0 ; x<sub_w ; x++)
-	{
-		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)info.max_x_d;
-		refinedDMap.at<uchar>(y,x) = refined_dmap[idx] * (double) IntensityLimit / (double)sub_info.max_x_d;
-		//dMap.at<uchar>(y,x) = best_disparity[idx];
-		idx++;
-	}
-
-//do up sampling
+	int h        = imL.rows;
+	int w        = imL.cols;
+	int node_amt = w * h;
+	
 	match_info info;
-	info.img_height = left_b.rows; 
-	info.img_width = left_b.cols; 
-	info.max_y_d = info.img_height / max_d_to_img_len_pow; 
-	info.max_x_d = info.img_width  / max_d_to_img_len_pow; 
-	info.node_c = info.img_height * info.img_width;
-	info.printf_match_info("原影像資訊");
-	uchar *upsampled_dmap;
-	if(	!(upsampled_dmap = cwz_up_sampling(context, device, program, err, left_b, mstL_b, info, sub_info, refined_dmap, 
-										   down_sample_pow, max_d_to_img_len_pow, true, true)) )
-	{ printf("cwz_up_sampling failed"); return 0; }
-	//
-cwz_timer::t_time_display("total");
+	info.img_height = h; 
+	info.img_width  = w; 
+	info.max_y_d = h / max_d_to_img_len_pow; 
+	info.max_x_d = w / max_d_to_img_len_pow; 
+	info.node_c  = node_amt;
+	info.printf_match_info("縮小影像資訊");
+	//image information set
 
-	cv::Mat upDMap(info.img_height, info.img_width, CV_8U);
-	idx = 0;
+	uchar *left_gray  = int_1d_arr_to_gray_arr(left_color , node_amt);
+	uchar *right_gray = int_1d_arr_to_gray_arr(right_color, node_amt);
+	float *left_1d_gradient  = new float[node_amt];
+	float *right_1d_gradient = new float[node_amt];
+
+	uchar **left_gray_2d_arr  = map_1d_arr_to_2d_arr<uchar>(left_gray , h, w);
+	uchar **right_gray_2d_arr = map_1d_arr_to_2d_arr<uchar>(right_gray, h, w);
+
+	int * left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color, info, img_pre_mdf);
+	int *right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color, info, img_pre_mdf);
+
+	cl_match_elem *left_cwz_img  = new cl_match_elem(node_amt, left_color_mdf_1d_arr , left_1d_gradient );
+	cl_match_elem *right_cwz_img = new cl_match_elem(node_amt, right_color_mdf_1d_arr, right_1d_gradient);
+
+	compute_gradient(left_cwz_img->gradient , left_gray_2d_arr , h, w);
+	compute_gradient(right_cwz_img->gradient, right_gray_2d_arr, h, w);
+	//cost match info gotten
+
+	cwz_mst mst;
+	mst.init(h, w, 1, info.max_x_d, info.max_y_d);
+	mst.set_img(left_gray);
+	//mst set
+
+	int match_result_len   = w * h * info.max_x_d;
+	float *matching_result = mst.get_agt_result();
+	bool inverse = false; // if it is right eye refer to left eye
+	if( !apply_cl_cost_match(context, device, program, err, 
+							left_cwz_img, right_cwz_img, matching_result, match_result_len, info, inverse) )
+	{ printf("apply_cl_cost_match failed.\n"); }
+
+	apply_match_cost_to_bf(info.max_x_d, h, w, mst.get_agt_result());
+
+	//
+	uchar *best_disparity = mst.pick_best_dispairty();
+	cv::Mat disparityMap(info.img_height, info.img_width, CV_8U);
+	int idx = 0;
 	for(int y=0 ; y<info.img_height ; y++) for(int x=0 ; x<info.img_width ; x++)
 	{
 		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)info.max_x_d;
-		upDMap.at<uchar>(y,x) = upsampled_dmap[idx] * (double) IntensityLimit / (double)info.max_x_d;
+		disparityMap.at<uchar>(y,x) = best_disparity[idx] * (double) IntensityLimit / (double)info.max_x_d;
 		//dMap.at<uchar>(y,x) = best_disparity[idx];
 		idx++;
 	}
-	cv::namedWindow("upDMap", CV_WINDOW_KEEPRATIO);
-	cv::imshow("upDMap",upDMap);
+	cv::namedWindow("test", CV_WINDOW_KEEPRATIO);
+	cv::imshow("test",disparityMap);
 	cv::waitKey(0);
+	//顯示深度圖
 
-	cv::namedWindow("refinedDMap", CV_WINDOW_KEEPRATIO);
-	cv::imshow("refinedDMap",refinedDMap);
+	//get match cost*/
+	/*
+	cv::Mat imL = cv::imread(LeftIMGName , CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat imLR;
+
+	cv::bilateralFilter(imL, imLR, 15, 30, 30 );
+	
+	cv::namedWindow("imLR", CV_WINDOW_KEEPRATIO);
+	cv::imshow("imLR",imLR);
 	cv::waitKey(0);
-
-	/*cv::Mat leftDMap(sub_h, sub_w, CV_8U);
-	idx = 0;
-	for(int y=0 ; y<sub_h ; y++) for(int x=0 ; x<sub_w ; x++)
-	{
-		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)info.max_x_d;
-		leftDMap.at<uchar>(y,x) = left_dmap[idx] * (double) IntensityLimit / (double)sub_info.max_x_d;
-		//dMap.at<uchar>(y,x) = best_disparity[idx];
-		idx++;
-	}
-	cv::Mat rightDMap(sub_h, sub_w, CV_8U);
-	idx = 0;
-	for(int y=0 ; y<sub_h ; y++) for(int x=0 ; x<sub_w ; x++)
-	{
-		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)info.max_x_d;
-		rightDMap.at<uchar>(y,x) = right_dmap[idx] * (double) IntensityLimit / (double)sub_info.max_x_d;
-		//dMap.at<uchar>(y,x) = best_disparity[idx];
-		idx++;
-	}
-	//
-
-	//cv::imwrite("leftDMap.bmp", leftDMap);
-	//cv::imwrite("rightDMap.bmp", rightDMap);
-
-	/*cv::namedWindow("leftDMap", CV_WINDOW_KEEPRATIO);
-	cv::imshow("leftDMap",leftDMap);
-	cv::waitKey(0);
-	cv::namedWindow("rightDMap", CV_WINDOW_KEEPRATIO);
-	cv::imshow("rightDMap",rightDMap);
-	cv::waitKey(0);*/
-
-	system("PAUSE");
-
-	clReleaseProgram(program);
-	clReleaseContext(context);
-
+	*/
 	return 0;
 }

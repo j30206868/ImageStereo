@@ -14,9 +14,9 @@
 
 #define IntensityLimit 256
 #define doTreeRefinement true
-#define setWto1 false
+#define setWto1 true
 #define max_d_to_img_len_pow 4
-const float default_sigma = 0.1;
+const float default_sigma = 0.3;
 const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
 const bool depth_post_mdf = true;
