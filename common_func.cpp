@@ -215,6 +215,20 @@ uchar *int_1d_arr_to_gray_arr(int *color_arr, int node_c){
 	return arr;
 }
 
+uchar *int_1d_color_to_uchar_1d_color(int *in_arr, int node_c){
+	uchar *uchar_arr = new uchar[node_c*3];
+	int mask_b = 0xFF;
+	int mask_g = 0xFF00;
+	int mask_r = 0xFF0000;
+	for(int i=0; i < node_c ; i++){
+		int u_idx = i * 3;
+		uchar_arr[u_idx  ] =    in_arr[i]&mask_b;
+		uchar_arr[u_idx+1] = (((in_arr[i]&mask_g)) >> 8);
+		uchar_arr[u_idx+2] = (((in_arr[i]&mask_r)) >> 16);
+	}
+	return uchar_arr;
+}
+
 void cwz_timer::start()
 {
 	//m_begin=clock();

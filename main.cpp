@@ -19,14 +19,14 @@
 #include "cwz_mst.h"
 #include "cwz_disparity_generation.h"
 
-//const char* LeftIMGName  = "tsukuba/scene1.row3.col1.ppm"; 
-//const char* RightIMGName = "tsukuba/scene1.row3.col3.ppm";
+const char* LeftIMGName  = "tsukuba/scene1.row3.col1.ppm"; 
+const char* RightIMGName = "tsukuba/scene1.row3.col3.ppm";
 //const char* LeftIMGName  = "face/face1.png"; 
 //const char* RightIMGName = "face/face2.png";
 //const char* LeftIMGName  = "dolls/dolls1.png"; 
 //const char* RightIMGName = "dolls/dolls2.png";
-const char* LeftIMGName  = "structure/struct_left.bmp"; 
-const char* RightIMGName = "structure/struct_right.bmp";
+//const char* LeftIMGName  = "structure/struct_left.bmp"; 
+//const char* RightIMGName = "structure/struct_right.bmp";
 
 void img_rotate_8UC1(double degree, cv::Mat before){
 	cv::Mat after = cv::Mat(before.rows, before.cols, CV_8UC1);
@@ -56,9 +56,9 @@ void img_rotate_8UC1(double degree, cv::Mat before){
 int main()
 {
 
-	//cv::Mat hand = cv::imread("hand.ppm", CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat hand = cv::imread("face_small_depth_color.ppm", CV_LOAD_IMAGE_GRAYSCALE);
 	//img_rotate_8UC1(2, hand);
-	const int down_sample_pow = 8;
+	const int down_sample_pow = 4;
 
 	cwz_mst mstL_b;
 	cwz_mst mstL;
@@ -78,7 +78,7 @@ int main()
 	//cv::imwrite("hand_mst_no_ctmf.bmp", ppmimg);
 
 	//build MST
-	cv::Mat left_b = cv::imread(LeftIMGName, CV_LOAD_IMAGE_COLOR);
+	cv::Mat left_b  = cv::imread(LeftIMGName , CV_LOAD_IMAGE_COLOR);
 	cv::Mat right_b = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
 
 	cv::Mat left; 
@@ -88,6 +88,9 @@ int main()
 	//cvmat_subsampling(left_b , left , 3, down_sample_pow);
 	//cvmat_subsampling(right_b, right, 3, down_sample_pow);
 	/************************************/
+
+	cv::imwrite("face_left_small_color.ppm" , left);
+	cv::imwrite("face_right_small_color.ppm", right);
 
 	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
     if( fs.isOpened() == false){
@@ -133,10 +136,10 @@ int main()
 
 	match_info sub_info;
 	sub_info.img_height = sub_h; 
-	sub_info.img_width = sub_w; 
+	sub_info.img_width  = sub_w; 
 	sub_info.max_x_d = sub_w / max_d_to_img_len_pow; 
 	sub_info.max_y_d = sub_h / max_d_to_img_len_pow; 
-	sub_info.node_c = sub_h * sub_w;
+	sub_info.node_c  = sub_h * sub_w;
 	sub_info.printf_match_info("縮小影像資訊");
 
 cwz_timer::t_start();
@@ -195,7 +198,7 @@ cwz_timer::t_time_display("total");
 	cv::imshow("refinedDMap",refinedDMap);
 	cv::waitKey(0);
 
-	/*cv::Mat leftDMap(sub_h, sub_w, CV_8U);
+	cv::Mat leftDMap(sub_h, sub_w, CV_8U);
 	idx = 0;
 	for(int y=0 ; y<sub_h ; y++) for(int x=0 ; x<sub_w ; x++)
 	{

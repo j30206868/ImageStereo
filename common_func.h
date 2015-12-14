@@ -15,7 +15,9 @@
 #define IntensityLimit 256
 #define doTreeRefinement true
 #define setWto1 false
-#define max_d_to_img_len_pow 4
+#define max_d_to_img_len_pow 5
+#define mst_channel 3
+#define upsampling_mst_channel 3
 const float default_sigma = 0.1;
 const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
@@ -137,6 +139,7 @@ T **map_1d_arr_to_2d_arr(T *arr, int h, int w){
 
 uchar **int_2d_arr_to_gray_arr(int **color_arr, int h, int w);
 uchar *int_1d_arr_to_gray_arr(int *color_arr, int node_c);
+uchar *int_1d_color_to_uchar_1d_color(int *in_arr, int node_c);
 inline uchar rgb_2_gray(uchar*in){return(uchar(0.299*in[0]+0.587*in[1]+0.114*in[2]+0.5));}
 
 //check if type equals

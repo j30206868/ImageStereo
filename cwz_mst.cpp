@@ -15,9 +15,13 @@ inline void addEdge(TEleUnit *img, int **edge_node_list, short *distance, int ed
 		idx0 *= 3;
 		idx1 *= 3;
 
-		distance[edge_idx] = std::abs(img[idx0  ] - img[idx1  ]) +
-							 std::abs(img[idx0+1] - img[idx1+1]) +
-							 std::abs(img[idx0+2] - img[idx1+2]);
+		uchar b = std::abs(img[idx0  ] - img[idx1  ]);
+		uchar g = std::abs(img[idx0+1] - img[idx1+1]);
+		uchar r = std::abs(img[idx0+2] - img[idx1+2]);
+
+		uchar max_distance = std::max( std::max(b, g), r);
+
+		distance[edge_idx] =  max_distance;
 	}else{
 		printf("cwz_mst addEdge(...): channel is not equal to 1 nor 3.\n");
 		system("PAUSE");
