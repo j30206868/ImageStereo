@@ -19,10 +19,10 @@
 #include "cwz_mst.h"
 #include "cwz_disparity_generation.h"
 
-const char* LeftIMGName  = "tsukuba/scene1.row3.col1.ppm"; 
-const char* RightIMGName = "tsukuba/scene1.row3.col3.ppm";
-//const char* LeftIMGName  = "face/face1.png"; 
-//const char* RightIMGName = "face/face2.png";
+//const char* LeftIMGName  = "tsukuba/scene1.row3.col1.ppm"; 
+//const char* RightIMGName = "tsukuba/scene1.row3.col3.ppm";
+const char* LeftIMGName  = "face/face1.png"; 
+const char* RightIMGName = "face/face2.png";
 //const char* LeftIMGName  = "dolls/dolls1.png"; 
 //const char* RightIMGName = "dolls/dolls2.png";
 //const char* LeftIMGName  = "structure/struct_left.bmp"; 
@@ -55,14 +55,11 @@ void img_rotate_8UC1(double degree, cv::Mat before){
 
 int main()
 {
-
 	cv::Mat hand = cv::imread("face_small_depth_color.ppm", CV_LOAD_IMAGE_GRAYSCALE);
 	//img_rotate_8UC1(2, hand);
 	const int down_sample_pow = 4;
 
 	cwz_mst mstL_b;
-	cwz_mst mstL;
-	cwz_mst mstR;
 
 	/*******************************************************
 							 OpenCL
@@ -88,9 +85,6 @@ int main()
 	//cvmat_subsampling(left_b , left , 3, down_sample_pow);
 	//cvmat_subsampling(right_b, right, 3, down_sample_pow);
 	/************************************/
-
-	cv::imwrite("face_left_small_color.ppm" , left);
-	cv::imwrite("face_right_small_color.ppm", right);
 
 	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
     if( fs.isOpened() == false){
@@ -142,19 +136,51 @@ int main()
 	sub_info.node_c  = sub_h * sub_w;
 	sub_info.printf_match_info("縮小影像資訊");
 
+	match_info info;
+	info.img_height = left_b.rows; 
+	info.img_width = left_b.cols; 
+	info.max_y_d = info.img_height / max_d_to_img_len_pow; 
+	info.max_x_d = info.img_width  / max_d_to_img_len_pow; 
+	info.node_c = info.img_height * info.img_width;
+
+	dmap_gen dmap_gen;
+	dmap_refine dmap_ref;
+	dmap_upsam dmap_ups;
+	
+	dmap_gen.init(context, device, program, err, left, right, sub_info);
+	dmap_ref.init(dmap_gen.mst_L, sub_info, dmap_gen.left_dmap, dmap_gen.right_dmap);
+	dmap_ups.init(context, device, program, err, down_sample_pow, left_b, info, sub_info, NULL);
+
+	dmap_ups.setup_mst_img();
+
 cwz_timer::t_start();
+	dmap_gen.filtering();
+	dmap_gen.compute_cwz_img();
+
 	uchar *left_dmap;
-	if( !(left_dmap = cwz_dmap_generate(context, device, program, err, left, right, mstL, sub_info, false)) )
+	if( !(left_dmap = dmap_gen.generate_left_dmap()) )
 	{printf( "cwz_dmap_generate left_dmap failed...!" );return 0;}
 
 	uchar *right_dmap;
-	if( !(right_dmap = cwz_dmap_generate(context, device, program, err, right, left, mstR, sub_info, true)) )
+	if( !(right_dmap = dmap_gen.generate_right_dmap()) )
 	{printf( "cwz_dmap_generate right_dmap failed...!" );return 0;}
 
 	uchar *refined_dmap;
+	//dmap_ref.set_left_right_dmap_value(left_dmap, right_dmap);
 	cwz_timer::start();
-	refined_dmap = refinement(left_dmap, right_dmap, mstL, mstR, sub_info);
+	refined_dmap = dmap_ref.refinement();
 	cwz_timer::time_display("calc_new_cost_after_left_right_check");
+
+	uchar *upsampled_dmap;
+	if(down_sample_pow > 1){
+		//do up sampling
+		info.printf_match_info("原影像資訊");
+		
+		dmap_ups.set_sub_disparity_map(refined_dmap);
+		if(	!(upsampled_dmap = dmap_ups.upsampling()) )
+		{ printf("cwz_up_sampling failed"); return 0; }
+	}
+	cwz_timer::t_time_display("total");
 
 	cv::Mat refinedDMap(sub_h, sub_w, CV_8U);
 	int idx = 0;
@@ -166,34 +192,22 @@ cwz_timer::t_start();
 		idx++;
 	}
 
-//do up sampling
-	match_info info;
-	info.img_height = left_b.rows; 
-	info.img_width = left_b.cols; 
-	info.max_y_d = info.img_height / max_d_to_img_len_pow; 
-	info.max_x_d = info.img_width  / max_d_to_img_len_pow; 
-	info.node_c = info.img_height * info.img_width;
-	info.printf_match_info("原影像資訊");
-	uchar *upsampled_dmap;
-	if(	!(upsampled_dmap = cwz_up_sampling(context, device, program, err, left_b, mstL_b, info, sub_info, refined_dmap, 
-										   down_sample_pow, max_d_to_img_len_pow, true, true)) )
-	{ printf("cwz_up_sampling failed"); return 0; }
-	//
-cwz_timer::t_time_display("total");
-
-	cv::Mat upDMap(info.img_height, info.img_width, CV_8U);
-	idx = 0;
-	for(int y=0 ; y<info.img_height ; y++) for(int x=0 ; x<info.img_width ; x++)
-	{
-		//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)info.max_x_d;
-		upDMap.at<uchar>(y,x) = upsampled_dmap[idx] * (double) IntensityLimit / (double)info.max_x_d;
-		//dMap.at<uchar>(y,x) = best_disparity[idx];
-		idx++;
+	if(down_sample_pow > 1){
+		cv::Mat upDMap(info.img_height, info.img_width, CV_8U);
+		idx = 0;
+		for(int y=0 ; y<info.img_height ; y++) for(int x=0 ; x<info.img_width ; x++)
+		{
+			//dMap.at<uchar>(y,x) = nodeList[y][x].dispairty * (double) IntensityLimit / (double)info.max_x_d;
+			upDMap.at<uchar>(y,x) = upsampled_dmap[idx] * (double) IntensityLimit / (double)info.max_x_d;
+			//dMap.at<uchar>(y,x) = best_disparity[idx];
+			idx++;
+		}
+		cv::namedWindow("upDMap", CV_WINDOW_KEEPRATIO);
+		cv::imshow("upDMap",upDMap);
+		cv::waitKey(0);
+		//getchar();
 	}
-	cv::namedWindow("upDMap", CV_WINDOW_KEEPRATIO);
-	cv::imshow("upDMap",upDMap);
-	cv::waitKey(0);
-
+	
 	cv::namedWindow("refinedDMap", CV_WINDOW_KEEPRATIO);
 	cv::imshow("refinedDMap",refinedDMap);
 	cv::waitKey(0);

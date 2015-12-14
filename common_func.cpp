@@ -214,6 +214,20 @@ uchar *int_1d_arr_to_gray_arr(int *color_arr, int node_c){
 	delete[] color;
 	return arr;
 }
+void int_1d_to_gray_arr(int *color_arr, uchar *gray_arr, int node_c){
+	uchar *color = new uchar[3];
+	int mask_b = 0xFF;
+	int mask_g = mask_b << 8;
+	int mask_r = mask_g << 8;
+	for(int i=0; i<node_c ; i++)
+	{
+		color[2] = (color_arr[i]&mask_b);
+		color[1] = (color_arr[i]&mask_g >> 8);
+		color[0] = (color_arr[i]&mask_r >> 16);
+		gray_arr[i] = rgb_2_gray( color );
+	}
+	delete[] color;
+}
 
 uchar *int_1d_color_to_uchar_1d_color(int *in_arr, int node_c){
 	uchar *uchar_arr = new uchar[node_c*3];
@@ -227,6 +241,17 @@ uchar *int_1d_color_to_uchar_1d_color(int *in_arr, int node_c){
 		uchar_arr[u_idx+2] = (((in_arr[i]&mask_r)) >> 16);
 	}
 	return uchar_arr;
+}
+void int_1d_color_to_uchar_1d_color(int *in_arr, uchar *out_arr, int node_c){
+	int mask_b = 0xFF;
+	int mask_g = 0xFF00;
+	int mask_r = 0xFF0000;
+	for(int i=0; i < node_c ; i++){
+		int u_idx = i * 3;
+		out_arr[u_idx  ] =    in_arr[i]&mask_b;
+		out_arr[u_idx+1] = (((in_arr[i]&mask_g)) >> 8);
+		out_arr[u_idx+2] = (((in_arr[i]&mask_r)) >> 16);
+	}
 }
 
 void cwz_timer::start()

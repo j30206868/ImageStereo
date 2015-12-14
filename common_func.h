@@ -42,6 +42,7 @@ struct cl_match_elem{
 	int *rgb;
 	float *gradient;
 	int node_c;
+	cl_match_elem(){}
 	cl_match_elem(int _node_c, int *_rgb, float *_gradient){
 		this->node_c = _node_c;
 		this->rgb      = _rgb;
@@ -139,7 +140,11 @@ T **map_1d_arr_to_2d_arr(T *arr, int h, int w){
 
 uchar **int_2d_arr_to_gray_arr(int **color_arr, int h, int w);
 uchar *int_1d_arr_to_gray_arr(int *color_arr, int node_c);
+
+void int_1d_to_gray_arr(int *color_arr, uchar *gray_arr, int node_c);
+
 uchar *int_1d_color_to_uchar_1d_color(int *in_arr, int node_c);
+void int_1d_color_to_uchar_1d_color(int *in_arr, uchar *out_arr, int node_c);
 inline uchar rgb_2_gray(uchar*in){return(uchar(0.299*in[0]+0.587*in[1]+0.114*in[2]+0.5));}
 
 //check if type equals
