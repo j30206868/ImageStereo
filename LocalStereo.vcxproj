@@ -83,6 +83,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="common_func.cpp" />
+    <Text Include="cwz_integral_img.cpp" />
     <ClCompile Include="cwz_mst.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -93,6 +94,7 @@
     <ClInclude Include="cwz_cl_cpp_functions.h" />
     <ClInclude Include="cwz_cl_data_type.h" />
     <ClInclude Include="common_func.h" />
+    <ClInclude Include="cwz_integral_img.h" />
     <ClInclude Include="cwz_mst.h" />
     <ClInclude Include="cwz_disparity_generation.h" />
   </ItemGroup>

@@ -18,17 +18,18 @@
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_mst.h"
 #include "cwz_disparity_generation.h"
+#include "cwz_integral_img.h"
 
 //const char* LeftIMGName  = "tsukuba/scene1.row3.col1.ppm"; 
 //const char* RightIMGName = "tsukuba/scene1.row3.col3.ppm";
-//const char* LeftIMGName  = "face/face1.png"; 
-//const char* RightIMGName = "face/face2.png";
+const char* LeftIMGName  = "face/face1.png"; 
+const char* RightIMGName = "face/face2.png";
 //const char* LeftIMGName  = "dolls/dolls1.png"; 
 //const char* RightIMGName = "dolls/dolls2.png";
-const char* LeftIMGName  = "structure/struct_left.bmp"; 
-const char* RightIMGName = "structure/struct_right.bmp";
+//const char* LeftIMGName  = "structure/struct_left.bmp"; 
+//const char* RightIMGName = "structure/struct_right.bmp";
 
-void apply_match_cost_to_bf(int max_disparity, int h, int w, float *match_cost){
+void apply_match_cost_to_bf(int max_disparity, int h, int w, float *match_cost, cv::Mat guided_i){
 	const int buffer_size = 160;
 	cv::Mat inputs[buffer_size];
 	cv::Mat outputs[buffer_size];
@@ -40,6 +41,7 @@ void apply_match_cost_to_bf(int max_disparity, int h, int w, float *match_cost){
 	//放入值
 	for(int d=0 ; d < max_disparity ; d++){
 		inputs[d] = cv::Mat(h, w, CV_32FC1);
+		outputs[d] = cv::Mat(h, w, CV_32FC1);
 		
 		int idx = 0 + d;
 		for(int y=0 ; y<h ; y++)
@@ -50,10 +52,16 @@ void apply_match_cost_to_bf(int max_disparity, int h, int w, float *match_cost){
 			idx += max_disparity;
 		}
 	}
+	guided_img<float, uchar> gfilter;
+	gfilter.init(NULL, guided_i.data, w, h);
+	//gfilter.img_p = guided_i.data;
 
 	//bilateral
 	for(int d=0 ; d < max_disparity ; d++){
-		cv::bilateralFilter(inputs[d], outputs[d], 15, 60, 60 );
+		//cv::bilateralFilter(inputs[d], outputs[d], 15, 60, 60 );
+		gfilter.img_i = (float *)inputs[d].data;
+		gfilter.filter_result = (float *)outputs[d].data;
+		gfilter.filtering();
 	}
 
 	//放回值
@@ -68,6 +76,7 @@ void apply_match_cost_to_bf(int max_disparity, int h, int w, float *match_cost){
 		}
 	}
 }
+
 
 int main()
 {
@@ -128,7 +137,7 @@ int main()
 							left_cwz_img, right_cwz_img, matching_result, match_result_len, info, inverse) )
 	{ printf("apply_cl_cost_match failed.\n"); }
 
-	apply_match_cost_to_bf(info.max_x_d, h, w, mst.get_agt_result());
+	apply_match_cost_to_bf(info.max_x_d, h, w, mst.get_agt_result(), imL);
 
 	//
 	uchar *best_disparity = mst.pick_best_dispairty();

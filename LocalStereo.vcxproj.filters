@@ -46,5 +46,13 @@
     <ClInclude Include="cwz_disparity_generation.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="cwz_integral_img.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="cwz_integral_img.cpp">
+      <Filter>資源檔</Filter>
+    </Text>
   </ItemGroup>
 </Project>
