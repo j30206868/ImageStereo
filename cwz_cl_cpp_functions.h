@@ -83,12 +83,99 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 		if(matcher == 0) { std::cerr << "Can't load matching_cost_inverse kernel\n"; return 0; }
 	}
 
-	time_t step_up_kernel_s = clock();
-
 	cl_mem cl_l_rgb = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * left_cwz_img->node_c, &left_cwz_img->rgb[0], NULL);
 	cl_mem cl_l_gradient = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * left_cwz_img->node_c, &left_cwz_img->gradient[0], NULL);
 
 	cl_mem cl_r_rgb = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * right_cwz_img->node_c, &right_cwz_img->rgb[0], NULL);
+	cl_mem cl_r_gradient = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * right_cwz_img->node_c, &right_cwz_img->gradient[0], NULL);
+
+	cl_mem cl_match_result = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * match_result_len, NULL, NULL);
+
+	cl_mem cl_match_info = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(match_info), &info, NULL);
+
+	if(cl_l_rgb == 0 || cl_l_gradient == 0 ||
+	   cl_r_rgb == 0 || cl_r_gradient == 0 ||
+	   cl_match_result == 0 || cl_match_info == 0) {
+		std::cerr << "Can't create OpenCL buffer\n";
+		clReleaseKernel(matcher);
+		clReleaseMemObject(cl_l_rgb);
+		clReleaseMemObject(cl_l_gradient);
+		clReleaseMemObject(cl_r_rgb);
+		clReleaseMemObject(cl_r_gradient);
+		clReleaseMemObject(cl_match_result);
+		clReleaseMemObject(cl_match_info);
+		return 0;
+	}
+
+	clSetKernelArg(matcher, 0, sizeof(cl_mem), &cl_l_rgb);
+	clSetKernelArg(matcher, 1, sizeof(cl_mem), &cl_l_gradient);
+	clSetKernelArg(matcher, 2, sizeof(cl_mem), &cl_r_rgb);
+	clSetKernelArg(matcher, 3, sizeof(cl_mem), &cl_r_gradient);
+	clSetKernelArg(matcher, 4, sizeof(cl_mem), &cl_match_result);
+	clSetKernelArg(matcher, 5, sizeof(cl_mem), &cl_match_info);
+	
+	cl_command_queue queue = clCreateCommandQueue(context, device, 0, 0);
+	if(queue == 0) {
+		std::cerr << "Can't create command queue\n";
+		clReleaseKernel(matcher);
+		clReleaseMemObject(cl_l_rgb);
+		clReleaseMemObject(cl_l_gradient);
+		clReleaseMemObject(cl_r_rgb);
+		clReleaseMemObject(cl_r_gradient);
+		clReleaseMemObject(cl_match_result);
+		clReleaseMemObject(cl_match_info);
+		return 0;
+	}
+
+	size_t work_size = (h * w);
+	
+    /* Do your stuff here */
+	err = clEnqueueNDRangeKernel(queue, matcher, 1, NULL, &work_size, 0, 0, 0, 0);
+
+	if(err == CL_SUCCESS) {
+		err = clEnqueueReadBuffer(queue, cl_match_result, CL_TRUE, 0, sizeof(float) * match_result_len, &matching_result[0], 0, 0, 0);
+	}
+
+	if(err != CL_SUCCESS ){
+		std::cerr << "Can't run kernel or read back data\n";	
+	}
+
+	clReleaseKernel(matcher);
+	clReleaseMemObject(cl_l_rgb);
+	clReleaseMemObject(cl_l_gradient);
+	clReleaseMemObject(cl_r_rgb);
+	clReleaseMemObject(cl_r_gradient);
+	clReleaseMemObject(cl_match_result);
+	clReleaseCommandQueue(queue);
+	clReleaseMemObject(cl_match_info);
+	
+	if( inverse == false )
+		cwz_timer::time_display("Left eye image cost match(+set kernel)");
+	else
+		cwz_timer::time_display("Right eye image cost match(+set kernel)");
+
+	return 1;
+}
+
+int apply_cl_nor_cost_match(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
+						cl_nor_match_elem *left_cwz_img, cl_nor_match_elem *right_cwz_img, float *matching_result, int match_result_len, match_info &info, bool inverse = false)
+{
+	int w = info.img_width;
+	int h = info.img_height;
+	cwz_timer::start();
+	cl_kernel matcher;
+	if( inverse == false ){
+		matcher = clCreateKernel(program, "nor_matching_cost", 0);
+		if(matcher == 0) { std::cerr << "Can't load nor_matching_cost kernel\n"; return 0; }
+	}else{
+		matcher = clCreateKernel(program, "nor_matching_cost_inverse", 0);
+		if(matcher == 0) { std::cerr << "Can't load nor_matching_cost_inverse kernel\n"; return 0; }
+	}
+
+	cl_mem cl_l_rgb = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * left_cwz_img->node_c * 3, &left_cwz_img->rgb[0], NULL);
+	cl_mem cl_l_gradient = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * left_cwz_img->node_c, &left_cwz_img->gradient[0], NULL);
+
+	cl_mem cl_r_rgb = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * right_cwz_img->node_c * 3, &right_cwz_img->rgb[0], NULL);
 	cl_mem cl_r_gradient = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * right_cwz_img->node_c, &right_cwz_img->gradient[0], NULL);
 
 	cl_mem cl_match_result = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * match_result_len, NULL, NULL);

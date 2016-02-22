@@ -3,7 +3,7 @@
 
 #include "common_func.h"
 
-typedef uchar TEleUnit;
+typedef float TEleUnit;
 
 class cwz_mst{
 public:
@@ -73,5 +73,6 @@ private:
 	int channel;
 };
 void compute_gradient(float*gradient, uchar **gray_image, int h, int w);
+void compute_nor_gradient(float*gradient, float *gray_image, int h, int w);
 
 #endif

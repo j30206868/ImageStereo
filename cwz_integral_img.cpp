@@ -156,6 +156,10 @@ template <class T> inline void normalize_arr(T *arr, double *n_arr, int len){
 	for(int i=0 ; i<len; i++)
 		n_arr[i] = arr[i] / (double)max_v;
 }
+template <class T> inline void normalize_arr(T *arr, float *n_arr, int len, T max_v){
+	for(int i=0 ; i<len; i++)
+		n_arr[i] = arr[i] / (float)max_v;
+}
 
 template<class T, class P>
 void guided_img<T, P>::init(T *_img_i, P *_img_p, int _w, int _h){
@@ -242,7 +246,7 @@ RESULT_TYPE *guided_img<T, P>::filtering(){
 
 	return filter_result;
 }
-
+/*
 void guild_filter_example(const char *LeftIMGName, int max_intensity){
 	cv::Mat my_img = cv::imread(LeftIMGName , CV_LOAD_IMAGE_GRAYSCALE);
 
@@ -287,7 +291,7 @@ void guild_filter_example(const char *LeftIMGName, int max_intensity){
 	cv::namedWindow("denoised", CV_WINDOW_KEEPRATIO);
 	cv::imshow("denoised",my_img);
 	cv::waitKey(0);
-}
+}*/
 
 /*void avoid_link_err(){
 	guided_img<unsigned char, double> gfilter;

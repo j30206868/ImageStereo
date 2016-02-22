@@ -38,10 +38,11 @@ void showImgRange(int *img, int x1, int y1, int x2, int y2, int w);
 void showImgRange(double *img, int x1, int y1, int x2, int y2, int w);
 
 template <class T> inline void normalize_arr(T *arr, double *n_arr, int len);
+template <class T> inline void normalize_arr(T *arr, double *n_arr, int len, T max_v);
 
-#define GUI_KERNEL_WIDTH  10
-#define GUI_KERNEL_HEIGHT 10
-#define GUI_EPSILON 0.01//0.04 * 255
+#define GUI_KERNEL_WIDTH  9
+#define GUI_KERNEL_HEIGHT 9
+#define GUI_EPSILON 0.0001
 
 //T  -> guided imageªºtype
 //P  -> imageªºtype

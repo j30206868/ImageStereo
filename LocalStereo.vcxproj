@@ -96,7 +96,6 @@
     <ClInclude Include="common_func.h" />
     <ClInclude Include="cwz_integral_img.h" />
     <ClInclude Include="cwz_mst.h" />
-    <ClInclude Include="cwz_disparity_generation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

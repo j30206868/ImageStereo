@@ -52,6 +52,23 @@ struct cl_match_elem{
 	}
 };
 
+//normalized intensity value
+struct cl_nor_match_elem{
+	float *rgb;
+	float *gradient;
+	int node_c;
+	cl_nor_match_elem(int _node_c, float *_rgb, float *_gradient){
+		this->node_c = _node_c;
+		this->rgb      = _rgb;
+		this->gradient = _gradient;
+	}
+	cl_nor_match_elem(int _node_c){
+		this->node_c = _node_c;
+		this->rgb      = new float[node_c * 3];
+		this->gradient = new float[node_c];
+	}
+};
+
 void cvmat_subsampling(cv::Mat &origin, cv::Mat &subsampled, int ch, int sub_pow);
 
 template <class T>T *new_1d_arr(int len, T init_value){

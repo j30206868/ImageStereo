@@ -4,6 +4,9 @@ __constant float gradient_ratio    = 0.89;
 __constant float max_color_cost    = 7.0;
 __constant float max_gradient_cost = 2.0;
 
+__constant float max_nor_color_cost    = 0.02745098039215686274509803921569;
+__constant float max_nor_gradient_cost = 0.0078431372549019607843137254902;
+
 __constant int mask_b = 0xFF;
 __constant int mask_g = 0xFF00;
 __constant int mask_r = 0xFF0000;
@@ -71,6 +74,67 @@ __kernel void matching_cost_inverse(__global const int* l_rgb, __global const fl
 	}
 }
 
+__kernel void nor_matching_cost(__global const float* l_rgb, __global const float *l_gradient, 
+							    __global const float* r_rgb, __global const float *r_gradient, 
+							    __global float* result, __global match_info *info)
+{//inputs are normalized intensities
+	// 450 -> width of image
+	// 60  -> max_disparity
+
+	const int idx = get_global_id(0);
+	const int x = idx % info->img_width;
+
+	int _idx = idx * 3;
+	int ridx = idx - x;
+	int _ridx = ridx * 3;
+	for(int d = info->max_x_d-1 ; d >= 0  ; d--){
+		if(x > d){
+			ridx = idx-d;
+			_ridx = ridx * 3;
+		}
+		float color_cost = fabs(  (l_rgb[_idx  ]) - (r_rgb[_ridx  ])  ) +
+					       fabs(  (l_rgb[_idx+1]) - (r_rgb[_ridx+1])  ) +
+					       fabs(  (l_rgb[_idx+2]) - (r_rgb[_ridx+2])  );
+
+		color_cost = fmin(color_cost/3.0, max_nor_color_cost);
+
+		float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_nor_gradient_cost);
+
+		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+	}
+}
+__kernel void nor_matching_cost_inverse(__global const float* l_rgb, __global const float *l_gradient, 
+										__global const float* r_rgb, __global const float *r_gradient, 
+										__global float* result, __global match_info *info)
+{
+	// 450 -> width of image
+	// 60  -> max_disparity
+
+	const int idx = get_global_id(0);
+	const int x = idx % info->img_width;
+
+	int _idx = idx * 3;
+	int ridx = idx - x + info->img_width - 1;
+	int _ridx = ridx * 3;
+	for(int d = info->max_x_d-1 ; d >= 0  ; d--){
+		if((x+d) < info->img_width){
+			ridx = idx+d;
+			_ridx = ridx * 3;
+		}
+
+		float color_cost = fabs(  (l_rgb[_idx  ]) - (r_rgb[_ridx  ])  ) +
+					       fabs(  (l_rgb[_idx+1]) - (r_rgb[_ridx+1])  ) +
+					       fabs(  (l_rgb[_idx+2]) - (r_rgb[_ridx+2])  );
+
+		color_cost = fmin(color_cost/3.0, max_nor_color_cost);
+
+		float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_nor_gradient_cost);
+
+		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+	}
+}
 __kernel void MedianFilterBitonic(const __global uint* pSrc, __global uint* pDst, __global match_info *info)
 {
 	const int x = get_global_id(0);

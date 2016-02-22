@@ -367,3 +367,31 @@ void compute_gradient(float*gradient, uchar **gray_image, int h, int w)
 		node_idx++;
 	}
 }
+
+void compute_nor_gradient(float*gradient, float *gray_image, int h, int w)
+{
+	float gray,gray_minus,gray_plus;
+	int node_idx = 0;
+	for(int y=0;y<h;y++)
+	{
+		gray_minus=gray_image[y*w+0];
+		gray=gray_plus=gray_image[y*w+1];
+		gradient[node_idx]=gray_plus-gray_minus+0.5;
+
+		node_idx++;
+
+		int base_idx = y*w;
+		for(int x=1;x<w-1;x++)
+		{
+			gray_plus=gray_image[base_idx + x+1];
+			gradient[node_idx]=0.5*(gray_plus-gray_minus)+0.5;
+
+			gray_minus=gray;
+			gray=gray_plus;
+			node_idx++;
+		}
+		
+		gradient[node_idx]=gray_plus-gray_minus+0.5;
+		node_idx++;
+	}
+}
