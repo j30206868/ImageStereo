@@ -8,6 +8,11 @@ typedef uchar TEleUnit;
 class cwz_mst{
 public:
 	static float sigma;
+	static bool setWtoOne;
+	static float *whistogram;
+	//update sigma
+	static void updateSigma(float _sigma);
+	static void updateWtoOne(bool _setWtoOne);
 
 	cwz_mst():isInit(false), hasImg(false){}
 
@@ -29,8 +34,6 @@ public:
 	void profile_mst();
 	//for reuse
 	void reinit();
-	//update sigma
-	void updateSigma(float _sigma);
 
 	TEleUnit *best_disparity;
 private:
@@ -65,7 +68,6 @@ private:
 	int *node_idx_from_p_to_c;//node id from parent to children
 	
 	float *agt_result;
-	float whistogram[IntensityLimit];
 
 	int h, w;
 	int edge_amt;

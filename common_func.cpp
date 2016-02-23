@@ -168,17 +168,28 @@ float *splitDataContent(std::string str, std::string delimiter, int &length){
 
 int *c3_mat_to_1d_int_arr(cv::Mat img, int h, int w){
 	int *arr = new int [h*w];
-	int idx = 0;
-	for(int y=0; y<h ; y++)
-	for(int x=0; x<w*3 ; x+=3)
+	uchar *img_arr = img.data;
+	int img_idx = 0;
+	for(int idx=0 ; idx<h*w; idx++)
 	{
-		arr[idx] =   img.at<uchar>(y, x  )       |
-				    (img.at<uchar>(y, x+1) << 8) |
-					(img.at<uchar>(y, x+2) << 16);
-		idx++;
+		arr[idx] =   img_arr[img_idx]       |
+				    (img_arr[img_idx+1] << 8) |
+					(img_arr[img_idx+2] << 16);
+		img_idx+=3;
 	}
 	
 	return arr;
+}
+void c3_mat_to_1d_int_arr(cv::Mat img, int *out, int h, int w){
+	uchar *img_arr = img.data;
+	int img_idx = 0;
+	for(int idx=0 ; idx<h*w; idx++)
+	{
+		out[idx] =   img_arr[img_idx]       |
+				    (img_arr[img_idx+1] << 8) |
+					(img_arr[img_idx+2] << 16);
+		img_idx+=3;
+	}
 }
 
 uchar **int_2d_arr_to_gray_arr(int **color_arr, int h, int w){
@@ -191,8 +202,8 @@ uchar **int_2d_arr_to_gray_arr(int **color_arr, int h, int w){
 	for(int x=0; x<w ; x++)
 	{
 		color[2] = (color_arr[y][x]&mask_b);
-		color[1] = (color_arr[y][x]&mask_g >> 8);
-		color[0] = (color_arr[y][x]&mask_r >> 16);
+		color[1] = ((color_arr[y][x]&mask_g) >> 8);
+		color[0] = ((color_arr[y][x]&mask_r) >> 16);
 		arr[y][x] = rgb_2_gray( color );
 	}
 	delete[] color;
@@ -207,8 +218,8 @@ uchar *int_1d_arr_to_gray_arr(int *color_arr, int node_c){
 	for(int i=0; i<node_c ; i++)
 	{
 		color[2] = (color_arr[i]&mask_b);
-		color[1] = (color_arr[i]&mask_g >> 8);
-		color[0] = (color_arr[i]&mask_r >> 16);
+		color[1] = ((color_arr[i]&mask_g) >> 8);
+		color[0] = ((color_arr[i]&mask_r) >> 16);
 		arr[i] = rgb_2_gray( color );
 	}
 	delete[] color;
@@ -222,8 +233,8 @@ void int_1d_to_gray_arr(int *color_arr, uchar *gray_arr, int node_c){
 	for(int i=0; i<node_c ; i++)
 	{
 		color[2] = (color_arr[i]&mask_b);
-		color[1] = (color_arr[i]&mask_g >> 8);
-		color[0] = (color_arr[i]&mask_r >> 16);
+		color[1] = ((color_arr[i]&mask_g) >> 8);
+		color[0] = ((color_arr[i]&mask_r) >> 16);
 		gray_arr[i] = rgb_2_gray( color );
 	}
 	delete[] color;

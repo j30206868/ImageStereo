@@ -46,5 +46,8 @@
     <ClInclude Include="cwz_disparity_generation.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="cwz_tree_filter_loop_ctrl.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

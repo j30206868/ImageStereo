@@ -128,6 +128,7 @@ float *readMatchCostFromFile(std::string fname, int h, int w, int max_disparity,
 void readDisparityFromFile(std::string fname, int h, int w, cv::Mat &dMap);
 
 int *c3_mat_to_1d_int_arr(cv::Mat img, int h, int w);
+void c3_mat_to_1d_int_arr(cv::Mat img, int *out, int h, int w);
 template<class T>
 T **map_1d_arr_to_2d_arr(T *arr, int h, int w){
 	T **arr_2d = new T*[h];

@@ -44,8 +44,6 @@ private:
 	//for channel = 3 mst
 	int *left_color_1d_for_3_mst;
 	int *right_color_1d_for_3_mst;
-
-	
 public:
 	uchar *left_dmap;
 	uchar *right_dmap;
@@ -55,12 +53,12 @@ public:
 
 	void init(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
 		      cv::Mat left, cv::Mat right, match_info _info);
+	void set_left_right(cv::Mat left, cv::Mat right);
 	void filtering();
 	void compute_cwz_img();
 	uchar *generate_left_dmap();
 	uchar *generate_right_dmap();
 };
-
 void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_program, cl_int &_err,
 					cv::Mat left, cv::Mat right, match_info _info){
 	info = _info;
@@ -74,7 +72,7 @@ void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_pr
 	device  = _device;
 	program = _program;
 	err     = _err;
-
+	
 	left_color_1d_arr  = c3_mat_to_1d_int_arr(left , h, w);
 	right_color_1d_arr = c3_mat_to_1d_int_arr(right, h, w);
 
@@ -107,7 +105,10 @@ void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_pr
 	mst_L.init(h, w, channel, info.max_x_d, info.max_y_d);
 	mst_R.init(h, w, channel, info.max_x_d, info.max_y_d);
 }
-
+void dmap_gen::set_left_right(cv::Mat left, cv::Mat right){
+	left_color_1d_arr  = c3_mat_to_1d_int_arr(left , info.img_height, info.img_width);
+	right_color_1d_arr = c3_mat_to_1d_int_arr(right, info.img_height, info.img_width);
+}
 void dmap_gen::filtering(){
 	/************************************************************************
 		比較用原圖也不應該做median filtering, 否則也會導致
@@ -132,7 +133,6 @@ void dmap_gen::filtering(){
 		int_1d_color_to_uchar_1d_color(right_color_1d_for_3_mst, right_img_arr_for_mst, info.node_c);
 	}
 }
-
 void dmap_gen::compute_cwz_img(){
 	left_cwz_img->node_c = info.node_c;
 	left_cwz_img->gradient = left_1d_gradient;
@@ -152,7 +152,6 @@ void dmap_gen::compute_cwz_img(){
 	compute_gradient(left_cwz_img->gradient , left_gray_2d_arr , info.img_height, info.img_width);
 	compute_gradient(right_cwz_img->gradient, right_gray_2d_arr, info.img_height, info.img_width);
 }
-
 uchar *dmap_gen::generate_left_dmap(){
 	/************************************************************************
 		用來做 mst 的灰階影像可以做Median filtering
@@ -220,7 +219,6 @@ uchar *dmap_gen::generate_right_dmap(){
 
 class dmap_upsam{
 private:
-	cwz_mst mst_b;
 	int channel;
 	match_info info;
 	match_info sub_info;
@@ -248,6 +246,8 @@ private:
 	uchar *upsampled_dmap;
 
 public:
+	cwz_mst mst_b;
+
 	void init(cl_context &_context, cl_device_id &_device, cl_program &_program, cl_int &_err,
 		       int _down_sample_pow, cv::Mat img_b, match_info &_info, match_info &_sub_info, uchar *_sub_disparity_map);
 	void setup_mst_img();
@@ -255,7 +255,6 @@ public:
 	uchar * upsampling();
 	
 };
-
 void dmap_upsam::init(cl_context &_context, cl_device_id &_device, cl_program &_program, cl_int &_err,
 					  int _down_sample_pow, cv::Mat img_b, match_info &_info, match_info &_sub_info, uchar *_sub_disparity_map)
 {
@@ -294,7 +293,6 @@ void dmap_upsam::init(cl_context &_context, cl_device_id &_device, cl_program &_
 		left_color_1d_arr_uchar = new uchar[node_c * 3];
 	}
 }
-
 void dmap_upsam::set_sub_disparity_map(uchar *_sub_disparity_map){
 	sub_disparity_map = _sub_disparity_map;
 }
@@ -353,101 +351,6 @@ uchar *dmap_upsam::upsampling(){
 	return upsampled_dmap;
 }
 
-uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
-						 cv::Mat left,  cv::Mat right, cwz_mst &mst, match_info &info, bool inverse = false)
-{
-	time_t img_init_s = clock();
-
-	int w = info.img_width;
-	int h = info.img_height;
-	int node_c = info.node_c;
-	int channel = mst_channel;
-	
-	int *left_color_1d_arr  = c3_mat_to_1d_int_arr(left , h, w);
-	int *right_color_1d_arr = c3_mat_to_1d_int_arr(right, h, w);
-	float *left_1d_gradient  = new float[node_c];
-	float *right_1d_gradient = new float[node_c];
-	/************************************************************************
-		比較用原圖也不應該做median filtering, 否則也會導致
-		深度圖的精確度大大降低
-		apply_cl_color_img_mdf<int>(..., bool is_apply_median_filtering_or_not)
-	************************************************************************/
-	int * left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, img_pre_mdf);
-	int *right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, info, img_pre_mdf);
-
-	cl_match_elem *left_cwz_img  = new cl_match_elem(node_c, left_color_mdf_1d_arr , left_1d_gradient );
-	cl_match_elem *right_cwz_img = new cl_match_elem(node_c, right_color_mdf_1d_arr, right_1d_gradient);
-	//printf("陣列init花費時間: %fs\n", double(clock() - img_init_s) / CLOCKS_PER_SEC);
-
-	uchar *left_gray_1d_arr  = int_1d_arr_to_gray_arr(left_color_1d_arr , node_c);
-	uchar *right_gray_1d_arr = int_1d_arr_to_gray_arr(right_color_1d_arr, node_c);
-
-	uchar **left_gray_2d_arr  = map_1d_arr_to_2d_arr<uchar>(left_gray_1d_arr, h, w);
-	uchar **right_gray_2d_arr = map_1d_arr_to_2d_arr<uchar>(right_gray_1d_arr, h, w);
-
-	/************************************************************************
-				用來產生gradient的灰階圖不要做median filtering
-				否則模糊後邊界會失真
-	************************************************************************/
-	compute_gradient(left_cwz_img->gradient , left_gray_2d_arr , h, w);
-	compute_gradient(right_cwz_img->gradient, right_gray_2d_arr, h, w);
-
-	/************************************************************************
-		用來做 mst 的灰階影像可以做Median filtering
-		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
-	************************************************************************/
-	
-	if( channel == 1 ){
-		uchar *left_gray_1d_arr_for_mst;
-		if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, info, mst_pre_mdf)) )
-		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
-		mst.set_img(left_gray_1d_arr_for_mst);
-	}else{
-		int *left_color_1d_for_3_mst = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, mst_pre_mdf);
-		uchar *left_color_1d_arr_uchar = int_1d_color_to_uchar_1d_color(left_color_1d_for_3_mst, node_c);
-		mst.set_img(left_color_1d_arr_uchar);
-	}
-	//mst.profile_mst();
-	cwz_timer::start();
-	mst.mst();
-	if( inverse == false )
-		cwz_timer::time_display("Left eye image Minimum spanning tree");
-	else
-		cwz_timer::time_display("Right eye image Minimum spanning tree");
-
-	int match_result_len = h * w * info.max_x_d;
-	float *matching_result = mst.get_agt_result();
-
-	/*******************************************************
-							Matching cost
-	*******************************************************/
-	if( !apply_cl_cost_match(context, device, program, err, 
-							left_cwz_img, right_cwz_img, matching_result, match_result_len, info, inverse) )
-	{ printf("apply_cl_cost_match failed.\n"); }
-
-	cwz_timer::start();
-	mst.cost_agt();
-	if( inverse == false )
-		cwz_timer::time_display("Left eye image cost_agt");
-	else
-		cwz_timer::time_display("Right eye image cost_agt");
-
-	cwz_timer::start();
-	uchar *best_disparity = mst.pick_best_dispairty();
-	if( inverse == false )
-		cwz_timer::time_display("Left eye image pick best disparity");
-	else
-		cwz_timer::time_display("Right eye image pick best disparity");
-
-	/************************************************************************
-		取得深度圖後可以做median filtering
-		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
-	************************************************************************/
-	uchar *final_dmap;
-	if( !(final_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, info, depth_post_mdf)) )
-	{ printf("dmap median filtering failed.\n"); return 0; }
-	return final_dmap;
-}
 
 class dmap_refine{
 private:
@@ -555,6 +458,101 @@ uchar *dmap_refine::refinement(bool applyTreeRefine){
 	return refined_dmap;
 }
 
+uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
+						 cv::Mat left,  cv::Mat right, cwz_mst &mst, match_info &info, bool inverse = false)
+{
+	time_t img_init_s = clock();
+
+	int w = info.img_width;
+	int h = info.img_height;
+	int node_c = info.node_c;
+	int channel = mst_channel;
+	
+	int *left_color_1d_arr  = c3_mat_to_1d_int_arr(left , h, w);
+	int *right_color_1d_arr = c3_mat_to_1d_int_arr(right, h, w);
+	float *left_1d_gradient  = new float[node_c];
+	float *right_1d_gradient = new float[node_c];
+	/************************************************************************
+		比較用原圖也不應該做median filtering, 否則也會導致
+		深度圖的精確度大大降低
+		apply_cl_color_img_mdf<int>(..., bool is_apply_median_filtering_or_not)
+	************************************************************************/
+	int * left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, img_pre_mdf);
+	int *right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, info, img_pre_mdf);
+
+	cl_match_elem *left_cwz_img  = new cl_match_elem(node_c, left_color_mdf_1d_arr , left_1d_gradient );
+	cl_match_elem *right_cwz_img = new cl_match_elem(node_c, right_color_mdf_1d_arr, right_1d_gradient);
+	//printf("陣列init花費時間: %fs\n", double(clock() - img_init_s) / CLOCKS_PER_SEC);
+
+	uchar *left_gray_1d_arr  = int_1d_arr_to_gray_arr(left_color_1d_arr , node_c);
+	uchar *right_gray_1d_arr = int_1d_arr_to_gray_arr(right_color_1d_arr, node_c);
+
+	uchar **left_gray_2d_arr  = map_1d_arr_to_2d_arr<uchar>(left_gray_1d_arr, h, w);
+	uchar **right_gray_2d_arr = map_1d_arr_to_2d_arr<uchar>(right_gray_1d_arr, h, w);
+
+	/************************************************************************
+				用來產生gradient的灰階圖不要做median filtering
+				否則模糊後邊界會失真
+	************************************************************************/
+	compute_gradient(left_cwz_img->gradient , left_gray_2d_arr , h, w);
+	compute_gradient(right_cwz_img->gradient, right_gray_2d_arr, h, w);
+
+	/************************************************************************
+		用來做 mst 的灰階影像可以做Median filtering
+		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
+	************************************************************************/
+	
+	if( channel == 1 ){
+		uchar *left_gray_1d_arr_for_mst;
+		if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, info, mst_pre_mdf)) )
+		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
+		mst.set_img(left_gray_1d_arr_for_mst);
+	}else{
+		int *left_color_1d_for_3_mst = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, mst_pre_mdf);
+		uchar *left_color_1d_arr_uchar = int_1d_color_to_uchar_1d_color(left_color_1d_for_3_mst, node_c);
+		mst.set_img(left_color_1d_arr_uchar);
+	}
+	//mst.profile_mst();
+	cwz_timer::start();
+	mst.mst();
+	if( inverse == false )
+		cwz_timer::time_display("Left eye image Minimum spanning tree");
+	else
+		cwz_timer::time_display("Right eye image Minimum spanning tree");
+
+	int match_result_len = h * w * info.max_x_d;
+	float *matching_result = mst.get_agt_result();
+
+	/*******************************************************
+							Matching cost
+	*******************************************************/
+	if( !apply_cl_cost_match(context, device, program, err, 
+							left_cwz_img, right_cwz_img, matching_result, match_result_len, info, inverse) )
+	{ printf("apply_cl_cost_match failed.\n"); }
+
+	cwz_timer::start();
+	mst.cost_agt();
+	if( inverse == false )
+		cwz_timer::time_display("Left eye image cost_agt");
+	else
+		cwz_timer::time_display("Right eye image cost_agt");
+
+	cwz_timer::start();
+	uchar *best_disparity = mst.pick_best_dispairty();
+	if( inverse == false )
+		cwz_timer::time_display("Left eye image pick best disparity");
+	else
+		cwz_timer::time_display("Right eye image pick best disparity");
+
+	/************************************************************************
+		取得深度圖後可以做median filtering
+		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
+	************************************************************************/
+	uchar *final_dmap;
+	if( !(final_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, info, depth_post_mdf)) )
+	{ printf("dmap median filtering failed.\n"); return 0; }
+	return final_dmap;
+}
 bool *detect_occlusion(uchar *left_depth, uchar *right_depth, int h, int w, int node_amt, int th = 0){
 	bool *mask = new bool[node_amt];
 	memset(mask, true, sizeof(bool) * node_amt);
@@ -613,7 +611,6 @@ uchar* refinement(uchar *left_dmap, uchar *right_dmap, cwz_mst &mstL, cwz_mst &m
 	}
 	return refined_dmap;
 }
-
 uchar *cwz_up_sampling(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
 						 cv::Mat left_b, cwz_mst &mstL_b, match_info &info, match_info &sub_info, uchar *disparity_map, 
 						 int down_sample_pow, int disparity_to_img_len_pow, bool do_mst_mdf, bool do_dmap_mdf)

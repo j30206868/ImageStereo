@@ -1,6 +1,8 @@
 #include "cwz_mst.h"
 
 float cwz_mst::sigma = default_sigma;
+bool cwz_mst::setWtoOne = setWto1;
+float *cwz_mst::whistogram = new float[IntensityLimit];
 
 inline int get_1d_idx_from_2d(int x, int y, int w){
 	return y * w + x;
@@ -80,10 +82,10 @@ void cwz_mst::init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis){
 	this->best_disparity = new TEleUnit[node_amt];
 
 	for(int i=0 ; i<IntensityLimit ; i++){
-		if(setWto1)
-			whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		if(cwz_mst::setWtoOne)
+			cwz_mst::whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
 		else
-			whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
+			cwz_mst::whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
 	}
 
 	this->isInit = true;
@@ -204,7 +206,7 @@ void cwz_mst::cost_agt(){
 			int child_disparity_i = child_i * max_x_disparity;
 
 			for(int d=0 ; d<max_x_disparity ; d++){
-				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * whistogram[ node_weight[child_i] ];
+				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * cwz_mst::whistogram[ node_weight[child_i] ];
 			}
 		}
 	}
@@ -215,7 +217,7 @@ void cwz_mst::cost_agt(){
 		int node_disparity_i = node_i * max_x_disparity;
 		int parent_disparity_i = parent_i * max_x_disparity;
 
-		float w = whistogram[ node_weight[ node_i ] ];
+		float w = cwz_mst::whistogram[ node_weight[ node_i ] ];
 		float one_m_sqw = (1.0 - w * w);
 
 		for(int d=0 ; d<max_x_disparity ; d++){
@@ -238,7 +240,7 @@ void cwz_mst::cost_agt(float *match_cost_result){
 			int child_disparity_i = child_i * max_x_disparity;
 
 			for(int d=0 ; d<max_x_disparity ; d++){
-				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * whistogram[ node_weight[child_i] ];
+				agt_result[ node_disparity_i+d ] += agt_result[ child_disparity_i+d ] * cwz_mst::whistogram[ node_weight[child_i] ];
 			}
 		}
 	}
@@ -249,7 +251,7 @@ void cwz_mst::cost_agt(float *match_cost_result){
 		int node_disparity_i = node_i * max_x_disparity;
 		int parent_disparity_i = parent_i * max_x_disparity;
 
-		float w = whistogram[ node_weight[ node_i ] ];
+		float w = cwz_mst::whistogram[ node_weight[ node_i ] ];
 		float one_m_sqw = (1.0 - w * w);
 
 		for(int d=0 ; d<max_x_disparity ; d++){
@@ -338,10 +340,20 @@ void cwz_mst::reinit(){
 void cwz_mst::updateSigma(float _sigma){
 	cwz_mst::sigma = _sigma;
 	for(int i=0 ; i<IntensityLimit ; i++){
-		if(setWto1)
-			whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		if(cwz_mst::setWtoOne)
+			cwz_mst::whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
 		else
-			whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
+			cwz_mst::whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
+	}
+}
+
+void cwz_mst::updateWtoOne(bool _setWtoOne){
+	cwz_mst::setWtoOne = _setWtoOne;
+	for(int i=0 ; i<IntensityLimit ; i++){
+		if(cwz_mst::setWtoOne)
+			cwz_mst::whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		else
+			cwz_mst::whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
 	}
 }
 

@@ -73,7 +73,7 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 {
 	int w = info.img_width;
 	int h = info.img_height;
-	cwz_timer::start();
+	//cwz_timer::start();
 	cl_kernel matcher;
 	if( inverse == false ){
 		matcher = clCreateKernel(program, "matching_cost", 0);
@@ -151,10 +151,10 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 	clReleaseCommandQueue(queue);
 	clReleaseMemObject(cl_match_info);
 	
-	if( inverse == false )
+	/*if( inverse == false )
 		cwz_timer::time_display("Left eye image cost match(+set kernel)");
 	else
-		cwz_timer::time_display("Right eye image cost match(+set kernel)");
+		cwz_timer::time_display("Right eye image cost match(+set kernel)");*/
 
 	return 1;
 }
@@ -215,13 +215,13 @@ T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program 
 	size_t work_size[2] = {w, h};
 	
     /* Do your stuff here */
-	cwz_timer::start();
+	//cwz_timer::start();
 	err = clEnqueueNDRangeKernel(queue, mdf_kernel, 2, offset_size, work_size, 0, 0, 0, 0);
 
 	if(err == CL_SUCCESS) {
 		err = clEnqueueReadBuffer(queue, cl_result, CL_TRUE, 0, sizeof(T) * node_c, &result_arr[0], 0, 0, 0);
 	}
-	cwz_timer::time_display("Median Filtering");
+	//cwz_timer::time_display("Median Filtering");
 
 	if(err != CL_SUCCESS)  {
 		std::cout << getErrorString(err) << std::endl;
@@ -299,13 +299,13 @@ int apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program
 	size_t work_size[2] = {w, h};
 	
     /* Do your stuff here */
-	cwz_timer::start();
+	//cwz_timer::start();
 	err = clEnqueueNDRangeKernel(queue, mdf_kernel, 2, offset_size, work_size, 0, 0, 0, 0);
 
 	if(err == CL_SUCCESS) {
 		err = clEnqueueReadBuffer(queue, cl_result, CL_TRUE, 0, sizeof(T) * node_c, &result_arr[0], 0, 0, 0);
 	}
-	cwz_timer::time_display("Median Filtering");
+	//cwz_timer::time_display("Median Filtering");
 
 	if(err != CL_SUCCESS)  {
 		std::cout << getErrorString(err) << std::endl;
