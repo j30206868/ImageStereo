@@ -330,3 +330,15 @@ void cvmat_subsampling(cv::Mat &origin, cv::Mat &subsampled, int ch, int sub_pow
 		}
 	}
 }
+
+void show_cv_img(std::string title, uchar *pixels, int h, int w, int c){
+	cv::Mat img;
+	if(c == 3)
+		img = cv::Mat(h, w, CV_8UC3);
+	else if(c == 1)
+		img = cv::Mat(h, w, CV_8UC1);
+	img.data = pixels;
+	cv::namedWindow(title, 1);
+	cv::imshow(title, img);
+	cvWaitKey(10);
+}

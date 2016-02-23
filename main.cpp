@@ -346,7 +346,7 @@ int main()
 
 			inputkey = -1;
 			if(status == CWZ_STATUS_MODIFY_PARAM){
-				cwz_cmd_processor cmd_proc(&dmap_generator);
+				cwz_cmd_processor cmd_proc(&dmap_generator, &frame_count);
 				cmd_proc.showRule();
 				bool isEnd = cmd_proc.readTreeLoopCommandStr();
 				if(isEnd){ status = CWZ_STATUS_FRAME_BY_FRAME; }

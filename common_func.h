@@ -13,7 +13,7 @@
 #include <time.h>
 
 #define IntensityLimit 256
-#define doTreeRefinement true
+#define doTreeRefinement false
 #define setWto1 false
 #define max_d_to_img_len_pow 5
 #define mst_channel 3
@@ -163,5 +163,7 @@ struct is_same<T, T>
 
 template<typename T, typename U>
 bool eqTypes() { return is_same<T, U>::value; }
+
+void show_cv_img(std::string title, uchar *pixels, int h, int w, int c);
 
 #endif //CWZ_COMMON_FUNC_H

@@ -145,6 +145,8 @@ void dmap_gen::compute_cwz_img(){
 	int_1d_to_gray_arr(left_color_1d_arr , left_gray_1d_arr , info.node_c);
 	int_1d_to_gray_arr(right_color_1d_arr, right_gray_1d_arr, info.node_c);
 
+	show_cv_img("grayscale", left_gray_1d_arr, info.img_height, info.img_width, 1);
+
 	/************************************************************************
 				用來產生gradient的灰階圖不要做median filtering
 				否則模糊後邊界會失真
