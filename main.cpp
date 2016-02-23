@@ -152,7 +152,7 @@ int main()
 	{ printf("apply_cl_cost_match failed.\n"); }
 
 	cwz_timer::start();
-	//apply_match_cost_to_bf(info.max_x_d, h, w, mst.get_agt_result(), nor_left_gray);
+	apply_match_cost_to_bf(info.max_x_d, h, w, mst.get_agt_result(), nor_left_gray);
 	cwz_timer::time_display("Running Time of Guided image filtering");
 	//
 	float *best_disparity = mst.pick_best_dispairty();

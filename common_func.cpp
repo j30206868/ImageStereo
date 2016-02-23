@@ -191,8 +191,8 @@ uchar **int_2d_arr_to_gray_arr(int **color_arr, int h, int w){
 	for(int x=0; x<w ; x++)
 	{
 		color[2] = (color_arr[y][x]&mask_b);
-		color[1] = (color_arr[y][x]&mask_g >> 8);
-		color[0] = (color_arr[y][x]&mask_r >> 16);
+		color[1] = ((color_arr[y][x]&mask_g) >> 8);
+		color[0] = ((color_arr[y][x]&mask_r) >> 16);
 		arr[y][x] = rgb_2_gray( color );
 	}
 	delete[] color;
@@ -207,8 +207,8 @@ uchar *int_1d_arr_to_gray_arr(int *color_arr, int node_c){
 	for(int i=0; i<node_c ; i++)
 	{
 		color[2] = (color_arr[i]&mask_b);
-		color[1] = (color_arr[i]&mask_g >> 8);
-		color[0] = (color_arr[i]&mask_r >> 16);
+		color[1] = ((color_arr[i]&mask_g) >> 8);
+		color[0] = ((color_arr[i]&mask_r) >> 16);
 		arr[i] = rgb_2_gray( color );
 	}
 	delete[] color;
