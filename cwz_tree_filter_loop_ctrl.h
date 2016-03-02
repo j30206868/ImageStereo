@@ -10,16 +10,14 @@ class cwz_cmd_processor{
 private:
 	std::string commandstr;
 	int *frame_count;
-	dmap_gen *dmap_generator;
 	
 public:
-	cwz_cmd_processor(dmap_gen *_dmap_gen, int *_frame_count);
+	cwz_cmd_processor(int *_frame_count);
 	void showRule();
 	bool readTreeLoopCommandStr();
 };
 
-cwz_cmd_processor::cwz_cmd_processor(dmap_gen *_dmap_gen, int *_frame_count){
-	this->dmap_generator = _dmap_gen;
+cwz_cmd_processor::cwz_cmd_processor(int *_frame_count){
 	this->frame_count = _frame_count;
 }
 

@@ -331,14 +331,32 @@ void cvmat_subsampling(cv::Mat &origin, cv::Mat &subsampled, int ch, int sub_pow
 	}
 }
 
-void show_cv_img(std::string title, uchar *pixels, int h, int w, int c){
+void show_cv_img(std::string title, uchar *pixels, int h, int w, int c, bool shouldWait){
 	cv::Mat img;
 	if(c == 3)
 		img = cv::Mat(h, w, CV_8UC3);
 	else if(c == 1)
 		img = cv::Mat(h, w, CV_8UC1);
 	img.data = pixels;
-	cv::namedWindow(title, 1);
+	cv::namedWindow(title, CV_WINDOW_FREERATIO);
 	cv::imshow(title, img);
-	cvWaitKey(10);
+	if(shouldWait)
+		cvWaitKey(0);
+	else
+		cvWaitKey(10);
+}
+
+void show_cv_img(std::string fname, int c, bool shouldWait){
+	cv::Mat img;
+	if(c==3)
+		img = cv::imread(fname, CV_LOAD_IMAGE_COLOR); 
+	else
+		img = cv::imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
+
+	cv::namedWindow(fname, CV_WINDOW_FREERATIO);
+	cv::imshow(fname, img);
+	if(shouldWait == true)
+		cvWaitKey(0);
+	else
+		cvWaitKey(10);
 }

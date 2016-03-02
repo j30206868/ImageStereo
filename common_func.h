@@ -12,8 +12,11 @@
 
 #include <time.h>
 
+
+#define default_method 1  //tree=1 ; sgbm=2
 #define IntensityLimit 256
 #define doTreeRefinement false
+#define defaultOcclusionTh 1
 #define setWto1 false
 #define max_d_to_img_len_pow 5
 #define mst_channel 3
@@ -22,6 +25,9 @@ const float default_sigma = 0.1;
 const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
 const bool depth_post_mdf = true;
+
+#define CWZ_SHOW_LEFT_DMAP false
+#define CWZ_SHOW_RIGHT_DMAP false
 
 class cwz_timer{
 public:
@@ -147,6 +153,19 @@ void int_1d_to_gray_arr(int *color_arr, uchar *gray_arr, int node_c);
 uchar *int_1d_color_to_uchar_1d_color(int *in_arr, int node_c);
 void int_1d_color_to_uchar_1d_color(int *in_arr, uchar *out_arr, int node_c);
 inline uchar rgb_2_gray(uchar*in){return(uchar(0.299*in[0]+0.587*in[1]+0.114*in[2]+0.5));}
+inline uchar max_rgb(uchar *in){
+	if(in[0] > in[1]){
+		if(in[0] > in[2])
+			return in[0];
+		else
+			return in[2];
+	}else{
+		if(in[1] > in[2])
+			return in[1];
+		else
+			return in[2];
+	}
+};
 
 //check if type equals
 template<typename T, typename U>
@@ -164,6 +183,7 @@ struct is_same<T, T>
 template<typename T, typename U>
 bool eqTypes() { return is_same<T, U>::value; }
 
-void show_cv_img(std::string title, uchar *pixels, int h, int w, int c);
+void show_cv_img(std::string title, uchar *pixels, int h, int w, int c, bool shouldWait = true);
+void show_cv_img(std::string fname, int c, bool shouldWait = true);
 
 #endif //CWZ_COMMON_FUNC_H

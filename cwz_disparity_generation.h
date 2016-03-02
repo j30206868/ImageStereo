@@ -145,8 +145,6 @@ void dmap_gen::compute_cwz_img(){
 	int_1d_to_gray_arr(left_color_1d_arr , left_gray_1d_arr , info.node_c);
 	int_1d_to_gray_arr(right_color_1d_arr, right_gray_1d_arr, info.node_c);
 
-	show_cv_img("grayscale", left_gray_1d_arr, info.img_height, info.img_width, 1);
-
 	/************************************************************************
 				用來產生gradient的灰階圖不要做median filtering
 				否則模糊後邊界會失真
@@ -373,14 +371,22 @@ private:
 	uchar **right_dmap_2d;
 
 public:
-	void init(cwz_mst &_mst, match_info &_info, uchar *_left_dmap_1d, uchar *_right_dmap_1d, int _occlusion_threshold = 0);
+	static int MODE_NO;
+	static int MODE_TREE;
+	static int MODE_SCANLINE_FILL;
+
+	void init(cwz_mst &_mst, match_info &_info, uchar *_left_dmap_1d, uchar *_right_dmap_1d, int _occlusion_threshold = defaultOcclusionTh);
 	void init(cwz_mst &_mst, match_info &_info, int _occlusion_threshold = 0);
 	void set_left_right_dmap_value(uchar *left_dmap, uchar *right_dmap);
 
 	void detect_occlusion();
 	void calc_new_cost_after_left_right_check();
-	uchar *refinement(bool applyTreeRefine = doTreeRefinement);
+	uchar *refinement(int mode = doTreeRefinement);
 };
+int dmap_refine::MODE_NO = 0;
+int dmap_refine::MODE_TREE = 1; 
+int dmap_refine::MODE_SCANLINE_FILL = 2;
+
 void dmap_refine::init(cwz_mst &_mst, match_info &_info, uchar *_left_dmap_1d, uchar *_right_dmap_1d, int _occlusion_threshold){
 	occlusion_threshold = _occlusion_threshold;
 
@@ -440,24 +446,27 @@ void dmap_refine::calc_new_cost_after_left_right_check(){
 		}
 	}
 }
-uchar *dmap_refine::refinement(bool applyTreeRefine){
+uchar *dmap_refine::refinement(int mode){
 	int w = info.img_width;
 	int h = info.img_height;
-	if(applyTreeRefine){
-		detect_occlusion();
+
+	detect_occlusion();
+	if(mode == dmap_refine::MODE_TREE){
 		calc_new_cost_after_left_right_check();
 		mst.cost_agt();
 		return mst.pick_best_dispairty();
+	}else if(mode == dmap_refine::MODE_SCANLINE_FILL){
+	
+	}else{
+		uchar *refined_dmap = new uchar[w*h];
+		for(int i=0 ; i<w*h ; i++){
+			if(left_mask_1d[i] == false)
+				refined_dmap[i] = 0;
+			else
+				refined_dmap[i] = left_dmap_1d[i];
+		}
+		return refined_dmap;
 	}
-	detect_occlusion();
-	uchar *refined_dmap = new uchar[w*h];
-	for(int i=0 ; i<w*h ; i++){
-		if(left_mask_1d[i] == false)
-			refined_dmap[i] = 0;
-		else
-			refined_dmap[i] = left_dmap_1d[i];
-	}
-	return refined_dmap;
 }
 
 uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
