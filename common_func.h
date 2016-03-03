@@ -21,6 +21,7 @@
 #define max_d_to_img_len_pow 5
 #define mst_channel 3
 #define upsampling_mst_channel 3
+#define defaultSegThreshold 10
 const float default_sigma = 0.1;
 const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;

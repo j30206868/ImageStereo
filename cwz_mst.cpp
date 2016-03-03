@@ -52,6 +52,8 @@ void cwz_mst::init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis){
 	this->max_x_disparity = max_x_dis;
 	this->max_y_disparity = max_y_dis;
 
+	default_root_id = 0;
+
 	this->node_amt = _h * _w;
 	this->edge_amt = (_h-1) * _w + h * (_w-1);
 	this->channel = _ch;
@@ -63,6 +65,17 @@ void cwz_mst::init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis){
 	this->node_conn_node_list = new_2d_arr<int>(this->node_amt, 4);
 	this->node_conn_weights   = new_2d_arr<int>(this->node_amt, 4);
 	this->node_conn_node_num  = new_1d_arr(this->node_amt, 0);
+
+	//for segmentation
+	this->seg_threshold = defaultSegThreshold;
+	this->region_amt_limit = this->node_amt / 10.0;
+	this->root_list = new int*[this->region_amt_limit];
+	for(int i=0 ; i<this->region_amt_limit; i++) this->root_list[i] = new int[2];
+	this->root_list[0][0] = default_root_id;	this->root_list[0][1] = -1;
+	this->root_list_count = 1;//從1開始, 因為至少會有一顆樹
+	this->can_be_root_node = new bool[this->node_amt];
+	memset(this->can_be_root_node, true, sizeof(bool) * this->node_amt);
+	//
 
 	this->node_group = new int[this->node_amt];
 	for(int i=0 ; i<this->node_amt ; i++){ this->node_group[i] = i; }
@@ -166,7 +179,7 @@ void cwz_mst::kruskal_mst(){
 	}
 }
 void cwz_mst::build_tree(){
-	int parent_id = 0;
+	int parent_id = default_root_id;
 	int possible_child_id = -1;
 	int t_c = 0;//tree node counter
 
@@ -174,10 +187,7 @@ void cwz_mst::build_tree(){
 	node_weight[parent_id]    = 0;
 	node_parent_id[parent_id] = 0;
 
-	push(0, id_stack, id_stack_e);
-	while( id_stack_e > -1 ){
-		parent_id = pop(id_stack, id_stack_e);
-
+	do{
 		for(int edge_c=0 ; edge_c < node_conn_node_num[parent_id] ; edge_c++){
 			possible_child_id = node_conn_node_list[parent_id][edge_c];
 			if( node_parent_id[possible_child_id] != -1 ){
@@ -192,6 +202,91 @@ void cwz_mst::build_tree(){
 			if( node_conn_node_num[possible_child_id] > 1)//definitely has one edge connect to parent(num eq 1 is a leaf node)
 				push(possible_child_id, id_stack, id_stack_e);
 		}
+		parent_id = pop(id_stack, id_stack_e);
+	}while( parent_id != -1 );
+}
+void cwz_mst::seg_kruskal_mst(){
+	for(int i=0 ; i<edge_amt ; i++){
+		int edge_idx = cost_sorted_edge_idx[i];
+
+		int n0 = edge_node_list[ edge_idx ][0];
+		int n1 = edge_node_list[ edge_idx ][1];
+		
+		int p0 = findset(n0);
+		int p1 = findset(n1);
+
+		if(p0 != p1){//此兩點不在同一個集合中
+			//點與點互相連結
+			if(distance[edge_idx] < seg_threshold){
+				node_conn_node_list[n0][ node_conn_node_num[n0] ] = n1;
+				node_conn_node_list[n1][ node_conn_node_num[n1] ] = n0;
+
+				node_conn_weights[n0][ node_conn_node_num[n0] ] = distance[edge_idx];
+				node_conn_weights[n1][ node_conn_node_num[n1] ] = distance[edge_idx];
+
+				node_conn_node_num[n0]++;
+				node_conn_node_num[n1]++;
+			}else{
+				this->root_list[ this->root_list_count ][0] = n0;
+				this->root_list[ this->root_list_count ][1] = n1;
+				this->root_list_count++;
+			}
+
+			node_group[p0] = p1;
+		}
+	}
+}
+void cwz_mst::seg_build_tree(){
+	int parent_id = default_root_id;
+	int possible_child_id = -1;
+	int t_c = 0;//tree node counter
+
+	for(int r_i=0 ; r_i < this->root_list_count ; r_i++){
+		int candidate_r_id = this->root_list[r_i][0];
+		if( this->can_be_root_node[candidate_r_id] ){
+			parent_id      = candidate_r_id;
+			candidate_r_id = this->root_list[r_i][1];
+		}else{ 
+			parent_id = this->root_list[r_i][1];//如果第1個點不行當root, 第2個點一定可以, 否則表示演算法有問題
+		
+			//debug use
+			if( !this->can_be_root_node[parent_id] ){
+				printf("Both node is not able to be root, algorithm may not work, please terminate the program and debug it.\n");
+				system("PAUSE");
+			}//
+		}
+
+		this->root_list[r_i][0] = t_c;         //改為紀錄root節點在node_idx_from_p_to_c[]中的index
+		node_idx_from_p_to_c[ t_c ] = parent_id;
+		node_weight[parent_id]    =  0;
+		node_parent_id[parent_id] = -1;
+		t_c++;
+
+		do{
+			for(int edge_c=0 ; edge_c < node_conn_node_num[parent_id] ; edge_c++){
+				possible_child_id = node_conn_node_list[parent_id][edge_c];
+				if( node_parent_id[possible_child_id] != -1 ){
+					continue;//its the parent, pass
+				}
+				node_idx_from_p_to_c[ t_c++ ] = possible_child_id;
+				node_weight[possible_child_id] = node_conn_weights[parent_id][edge_c];
+				node_parent_id[possible_child_id] = parent_id;
+
+				child_node_list[parent_id][ child_node_num[parent_id]++ ] = possible_child_id;
+				this->can_be_root_node[possible_child_id] = false;//once become ones child, it can't be root candidate anymore
+
+				if( node_conn_node_num[possible_child_id] > 1)//definitely has one edge connect to parent(num eq 1 is a leaf node)
+					push(possible_child_id, id_stack, id_stack_e);
+			}
+			parent_id = pop(id_stack, id_stack_e);
+		}while( parent_id != -1 );
+	}
+
+	if(t_c == this->node_amt){
+		printf("t_c == this->node_amt\n");
+	}else{
+		printf("t_c != this->node_amt, algorithm error.\n");
+		system("PAUSE");
 	}
 }
 //
@@ -294,6 +389,8 @@ void cwz_mst::profile_mst(){
 
 		int test_amt = 10;
 		for(int i=0; i<test_amt; i++){
+			if(i>0)
+				reinit();
 			cwz_timer::start();
 			this->build_edges();
 			total_b_edge += cwz_timer::return_time();
@@ -306,8 +403,8 @@ void cwz_mst::profile_mst(){
 			cwz_timer::start();
 			this->build_tree();
 			total_b_tree += cwz_timer::return_time();
-			reinit();
 		}
+		printf("redo for %d times and has averaged.\n", test_amt);
 		printf("build_edges  : %5.5fs\n"  , total_b_edge/test_amt);
 		printf("counting_sort: %5.5fs\n", total_c_sort/test_amt);
 		printf("kruskal_mst  : %5.5fs\n"  , total_mst   /test_amt);
@@ -321,6 +418,11 @@ void cwz_mst::reinit(){
 	memset(this->histogram, 0, sizeof(int) * IntensityLimit);
 	for(int i=0 ; i<this->node_amt ; i++){ this->node_group[i] = i; }
 	memset(this->node_conn_node_num, 0, sizeof(int) * this->node_amt);
+	//for segmentation
+	this->root_list[0][0] = default_root_id;	this->root_list[0][1] = -1;
+	this->root_list_count = 1;
+	memset(this->can_be_root_node, true, sizeof(bool) * this->node_amt);
+	//
 	this->id_stack_e = -1;
 	memset(this->child_node_num, 0, sizeof(int) * this->node_amt); 
 	memset(this->node_parent_id, -1, sizeof(int) * this->node_amt); 

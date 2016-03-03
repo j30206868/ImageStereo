@@ -20,11 +20,14 @@ public:
 
 	void init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis);
 	void set_img(TEleUnit *_img);
-	//
+	//for normal mst
 	void build_edges();
 	void counting_sort();
 	void kruskal_mst();
-	void build_tree();
+	void build_tree();//will build a tree
+	//for segmentation
+	void seg_kruskal_mst();//will not connect the edge that has weight larger than the threshold.
+	void seg_build_tree(); //will build multiple forest
 	//
 	void cost_agt();
 	void cost_agt(float *match_cost_result);
@@ -45,6 +48,8 @@ private:
 	bool isInit;
 	bool hasImg;
 
+	int default_root_id;
+
 	TEleUnit *img;
 	short *distance;
 	int **edge_node_list;//[2]edge兩端的node的idx
@@ -54,6 +59,14 @@ private:
 	int **node_conn_node_list;//[4]所有與此node相連的node(中間存在edge的另一端點)
 	int **node_conn_weights;  //[4]記錄被連接的edge的weight
 	int *node_conn_node_num;  //記錄node_conn_node_list中有幾個點跟此點連接
+
+	//for segmentation
+	int seg_threshold;
+	int region_amt_limit;
+	int **root_list;
+	int root_list_count;
+	bool *can_be_root_node;
+	//
 
 	int histogram[IntensityLimit];
 
