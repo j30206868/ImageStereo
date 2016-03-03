@@ -159,8 +159,8 @@ uchar *dmap_gen::generate_left_dmap(){
 	************************************************************************/
 	mst_L.set_img(left_img_arr_for_mst);
 
-	//mst.profile_mst();
-	mst_L.mst();
+	mst_L.profile_mst();
+	//mst_L.mst();
 
 	int match_result_len = info.img_height * info.img_width * info.max_x_d;
 	float *matching_result = mst_L.get_agt_result();

@@ -7,7 +7,6 @@ typedef struct {
 	int node_c;
 	int img_width;
 	int img_height;
-	uchar *offset;//ªø«×¬°9
 
 	void printf_match_info(const char *str);
 } match_info;

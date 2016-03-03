@@ -23,8 +23,6 @@
 #include "cwz_disparity_generation.h"
 #include "cwz_tree_filter_loop_ctrl.h"
 
-
-
 // for change window name
 #define _AFXDLL
 #include <afxwin.h>
@@ -60,7 +58,6 @@ void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_nu
 
 int processInputKey(int inputkey, int &status, int &frame_count, int &method);//will return shouldbreak or not
 void apply_opencv_stereoSGNM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap, match_info info);
-
 
 int main()
 {

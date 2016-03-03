@@ -14,7 +14,6 @@ typedef struct {
 	int node_c;
 	int img_width;
 	int img_height;
-	uchar *offset;//ªø«×¬°9
 } match_info;
 
 __kernel void matching_cost(__global const int* l_rgb, __global const float *l_gradient, 

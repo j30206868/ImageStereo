@@ -303,6 +303,9 @@ double cwz_timer::stop()
     QueryPerformanceCounter(&li);
     return double(li.QuadPart-m_counter_start)/m_pc_frequency;
 }
+double cwz_timer::return_time(int nr_frame){
+	return stop()/nr_frame;
+}
 void cwz_timer::time_display(char *disp,int nr_frame){ printf("Running time (%s) is: %5.5f Seconds.\n",disp,stop()/nr_frame);}
 void cwz_timer::t_time_display(char *disp,int nr_frame){ printf("Running time (%s) is: %5.5f Seconds.\n",disp,t_stop()/nr_frame);}
 

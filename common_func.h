@@ -35,6 +35,7 @@ public:
 	static void t_start();
 	static double stop();
 	static double t_stop();
+	static double return_time(int nr_frame=1);
 	static void time_display(char *disp,int nr_frame=1);
 	static void t_time_display(char *disp,int nr_frame=1);
 private: 

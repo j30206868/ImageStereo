@@ -286,46 +286,35 @@ void cwz_mst::mst(){
 }
 void cwz_mst::profile_mst(){
 	printf("--	start mst profiling	--\n");
-	double total = 0;
-	double build_edge_s;
-	double counting_sort_s;
-	double kruskal_s;
-	double build_tree_s;
-	time_t start;
 	if( this->isInit && this->hasImg ){
-		start = clock();
-		this->build_edges();
-		build_edge_s = double(clock() - start) / CLOCKS_PER_SEC;
+		double total_b_edge = 0;
+		double total_c_sort = 0;
+		double total_mst = 0;
+		double total_b_tree = 0;
 
-		start = clock();
-		this->counting_sort();
-		counting_sort_s = double(clock() - start) / CLOCKS_PER_SEC;
-
-		start = clock();
-		this->kruskal_mst();
-		kruskal_s = double(clock() - start) / CLOCKS_PER_SEC;
-
-		start = clock();
-		this->build_tree();
-		build_tree_s = double(clock() - start) / CLOCKS_PER_SEC;
-
-		printf("build_edges  : %2.4fs\n", build_edge_s);
-		printf("counting_sort: %2.4fs\n", counting_sort_s);
-		printf("kruskal_mst  : %2.4fs\n", kruskal_s);
-		printf("build_tree   : %2.4fs\n", build_tree_s);
-		printf("---------------------\n");
-		printf("   total time: %2.4fs\n", build_edge_s+counting_sort_s+kruskal_s+build_tree_s);
-
-		int total_w = 0;
-		for(int i=0 ; i<this->node_amt ; i++){
-			total_w += node_weight[i];
-			//printf("[%3d]weight:%d\n", i, node_weight[i]);
-			//system("PAUSE");
+		int test_amt = 10;
+		for(int i=0; i<test_amt; i++){
+			cwz_timer::start();
+			this->build_edges();
+			total_b_edge += cwz_timer::return_time();
+			cwz_timer::start();
+			this->counting_sort();
+			total_c_sort += cwz_timer::return_time();
+			cwz_timer::start();
+			this->kruskal_mst();
+			total_mst += cwz_timer::return_time();
+			cwz_timer::start();
+			this->build_tree();
+			total_b_tree += cwz_timer::return_time();
+			reinit();
 		}
-		printf("     node_amt: %d nodes\n", node_amt);
-		printf(" total weight: %d\n", total_w);
+		printf("build_edges  : %5.5fs\n"  , total_b_edge/test_amt);
+		printf("counting_sort: %5.5fs\n", total_c_sort/test_amt);
+		printf("kruskal_mst  : %5.5fs\n"  , total_mst   /test_amt);
+		printf("build_tree   : %5.5fs\n"   , total_b_tree/test_amt);
 	}
 	printf("--	endof mst profiling	--\n");
+	system("PAUSE");
 }
 //for reuse
 void cwz_mst::reinit(){
