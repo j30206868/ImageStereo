@@ -69,19 +69,21 @@ cl_device_id setup_opencl(cl_context &context, cl_int &err){
 	return devices[0];
 }
 int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
-						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int match_result_len, match_info &info, bool inverse = false)
+						cl_match_elem *left_cwz_img, cl_match_elem *right_cwz_img, float *matching_result, int match_result_len, match_info &info, bool inverse = false, bool useWindow = useSadWindow)
 {
 	int w = info.img_width;
 	int h = info.img_height;
 	//cwz_timer::start();
 	cl_kernel matcher;
-	if( inverse == false ){
-		matcher = clCreateKernel(program, "matching_cost", 0);
-		if(matcher == 0) { std::cerr << "Can't load matching_cost kernel\n"; return 0; }
-	}else{
-		matcher = clCreateKernel(program, "matching_cost_inverse", 0);
-		if(matcher == 0) { std::cerr << "Can't load matching_cost_inverse kernel\n"; return 0; }
-	}
+	std::stringstream sstm;
+	sstm << "matching_cost";
+	if(inverse)
+		sstm << "_inverse";
+	if(useWindow)
+		sstm << "_3cmax_sad3by3";
+
+	matcher = clCreateKernel(program, sstm.str().c_str(), 0);
+	if(matcher == 0) { std::cerr << "Can't load kernel" << sstm.str() << "\n"; return 0; }
 
 	time_t step_up_kernel_s = clock();
 

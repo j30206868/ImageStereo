@@ -156,6 +156,7 @@ int main()
 	sub_info.max_x_d = sub_w / max_d_to_img_len_pow; 
 	sub_info.max_y_d = sub_h / max_d_to_img_len_pow; 
 	sub_info.node_c  = sub_h * sub_w;
+	sub_info.setup_offset();
 	sub_info.printf_match_info("縮小影像資訊");
 
 	match_info info;
@@ -164,6 +165,7 @@ int main()
 	info.max_y_d = info.img_height / max_d_to_img_len_pow; 
 	info.max_x_d = info.img_width  / max_d_to_img_len_pow; 
 	info.node_c = info.img_height * info.img_width;
+	info.setup_offset();
 
 	dmap_gen dmap_generator;
 	dmap_refine dmap_ref;

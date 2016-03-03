@@ -14,7 +14,7 @@ typedef struct {
 	int node_c;
 	int img_width;
 	int img_height;
-	uchar *offset;//長度為9
+	short offset[9];//offset array長度為9
 } match_info;
 
 __kernel void matching_cost(__global const int* l_rgb, __global const float *l_gradient, 
@@ -128,6 +128,162 @@ __kernel void matching_cost_inverse_3cmax(__global const int* l_rgb, __global co
 
 		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
 		result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+	}
+}
+
+__kernel void matching_cost_3cmax_sad3by3(__global const int* l_rgb, __global const float *l_gradient, 
+							__global const int* r_rgb, __global const float *r_gradient, 
+							__global float* result, __global match_info *info)
+{
+	const int idx = get_global_id(0);
+	const int x = idx % info->img_width;
+
+	int ridx = idx - x;
+
+	if(
+	   ( (idx >= info->img_width) && (idx < (info->node_c - info->img_width))) //check if y is valid for sad
+	   && 
+	   (x < (info->img_width-1))
+	){
+		for(int d = info->max_x_d-1 ; d >= 0  ; d--){
+			float color_cost = 0;
+			if(x > d){
+				ridx = idx-d;
+				int idx_offset = idx  - info->img_width - 1;
+				int ridx_offset= ridx - info->img_width - 1;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				idx_offset++;
+				ridx_offset++;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				idx_offset++;
+				ridx_offset++;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				idx_offset+= info->img_width - 2;
+				ridx_offset+= info->img_width - 2;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				idx_offset++;
+				ridx_offset++;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				idx_offset++;
+				ridx_offset++;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				idx_offset+= info->img_width - 2;
+				ridx_offset+= info->img_width - 2;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				idx_offset++;
+				ridx_offset++;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				idx_offset++;
+				ridx_offset++;
+				color_cost+= max(max(
+								abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+								abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+
+				color_cost = color_cost / 9.0f;
+			}else{
+				color_cost = max(max(
+								abs(  ((l_rgb[idx]&mask_b) - (r_rgb[ridx]&mask_b))      ),
+								abs( (((l_rgb[idx]&mask_g) - (r_rgb[ridx]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx]&mask_r) - (r_rgb[ridx]&mask_r)) >> 16)));
+			}
+
+			color_cost = fmin(color_cost, max_color_cost);
+			float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
+			result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		}
+	}else{
+		for(int d = info->max_x_d-1 ; d >= 0  ; d--){
+			if(x > d)
+				ridx = idx-d;
+
+			float color_cost = max(max(
+									abs(  ((l_rgb[idx]&mask_b) - (r_rgb[ridx]&mask_b))      ),
+									abs( (((l_rgb[idx]&mask_g) - (r_rgb[ridx]&mask_g)) >> 8))),
+									abs( (((l_rgb[idx]&mask_r) - (r_rgb[ridx]&mask_r)) >> 16)));
+			color_cost = fmin(color_cost, max_color_cost);
+			float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
+			result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		}
+	}
+}
+__kernel void matching_cost_inverse_3cmax_sad3by3(__global const int* l_rgb, __global const float *l_gradient, 
+									__global const int* r_rgb, __global const float *r_gradient, 
+									__global float* result, __global match_info *info)
+{
+	const int idx = get_global_id(0);
+	const int x = idx % info->img_width;
+
+	int ridx = idx - x + info->img_width - 1;
+
+	if(
+	   (idx >= info->img_width && idx < (info->node_c - info->img_width)) //check if y is valid for sad
+	   && 
+	   (x > 0)
+	){
+		for(int d = info->max_x_d-1 ; d >= 0  ; d--){
+			float color_cost = 0;
+			if((x+d) < (info->img_width-1)){
+				ridx = idx+d;
+
+				for(int oi=0 ; oi<9 ; oi++){
+					int idx_offset = idx  + info->offset[oi];
+					int ridx_offset= ridx + info->offset[oi];
+					color_cost += max(max(
+									abs(  ((l_rgb[idx_offset]&mask_b) - (r_rgb[ridx_offset]&mask_b))      ),
+									abs( (((l_rgb[idx_offset]&mask_g) - (r_rgb[ridx_offset]&mask_g)) >> 8))),
+									abs( (((l_rgb[idx_offset]&mask_r) - (r_rgb[ridx_offset]&mask_r)) >> 16)));
+				}
+				color_cost = color_cost / 9.0f;
+			}else{
+				color_cost = max(max(
+								abs(  ((l_rgb[idx]&mask_b) - (r_rgb[ridx]&mask_b))      ),
+								abs( (((l_rgb[idx]&mask_g) - (r_rgb[ridx]&mask_g)) >> 8))),
+								abs( (((l_rgb[idx]&mask_r) - (r_rgb[ridx]&mask_r)) >> 16)));
+			}
+
+			color_cost = fmin(color_cost, max_color_cost);
+			float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
+			result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		}
+	}else{
+		for(int d = info->max_x_d-1 ; d >= 0  ; d--){
+			if((x+d) < info->img_width)
+				ridx = idx+d;
+
+			float color_cost = max(max(
+									abs(  ((l_rgb[idx]&mask_b) - (r_rgb[ridx]&mask_b))      ),
+									abs( (((l_rgb[idx]&mask_g) - (r_rgb[ridx]&mask_g)) >> 8))),
+									abs( (((l_rgb[idx]&mask_r) - (r_rgb[ridx]&mask_r)) >> 16)));
+
+			color_cost = fmin(color_cost, max_color_cost);
+			float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
+			result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		}
 	}
 }
 

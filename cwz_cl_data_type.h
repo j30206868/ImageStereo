@@ -1,17 +1,33 @@
 #ifndef CWZ_CL_DATA_TYPE_H
 #define CWZ_CL_DATA_TYPE_H
 
-typedef struct {
+struct match_info{
 	int max_x_d;
 	int max_y_d;
 	int node_c;
 	int img_width;
 	int img_height;
-	uchar *offset;//長度為9
+	short offset[9];//長度為9
 
+	void setup_offset();
 	void printf_match_info(const char *str);
-} match_info;
-
+};
+void match_info::setup_offset(){
+	if(img_width > 0 && img_height > 0){
+		offset[0] = -img_width-1;
+		offset[1] = -img_width;
+		offset[2] = -img_width+1;
+		offset[3] = -1;
+		offset[4] = 0;
+		offset[5] = +1;
+		offset[6] = +img_width-1;
+		offset[7] = +img_width;
+		offset[8] = +img_width+1;
+	}else{
+		printf("match_info::setup_offset failed: width and height not defined.\n");
+		system("PAUSE");
+	}
+}
 void match_info::printf_match_info(const char *str){
 	printf("-- match_info(%s) --\n", str);
 	printf("img_width:%3d | img_height:%3d | node_c:%6d\n", img_width, img_height, node_c);
