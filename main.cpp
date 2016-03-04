@@ -29,14 +29,14 @@
 
 //const char* LeftIMGName  = "tsukuba/scene1.row3.col1.ppm"; 
 //const char* RightIMGName = "tsukuba/scene1.row3.col3.ppm";
-//const char* LeftIMGName  = "face/face1.png"; 
-//const char* RightIMGName = "face/face2.png";
+const char* LeftIMGName  = "face/face1.png"; 
+const char* RightIMGName = "face/face2.png";
 //const char* LeftIMGName  = "dolls/dolls1.png"; 
 //const char* RightIMGName = "dolls/dolls2.png";
 //const char* LeftIMGName  = "structure/struct_left.bmp"; 
 //const char* RightIMGName = "structure/struct_right.bmp";
-const char* LeftIMGName  = "ImgSeries/left01.bmp"; 
-const char* RightIMGName = "ImgSeries/right01.bmp";
+//const char* LeftIMGName  = "ImgSeries/left01.bmp"; 
+//const char* RightIMGName = "ImgSeries/right01.bmp";
 
 const int CWZ_STATUS_KEEPGOING = 0;
 const int CWZ_STATUS_FRAME_BY_FRAME = 1;
@@ -61,6 +61,7 @@ void apply_opencv_stereoSGNM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap
 
 int main()
 {
+	srand (time(NULL));
 	/*cv::Mat testleft = cv::imread("ImgSeries/left52.bmp", CV_LOAD_IMAGE_COLOR);
 	cv::Mat testright = cv::imread("ImgSeries/right52.bmp", CV_LOAD_IMAGE_COLOR);
 	cv::imwrite("ImgSeries/left52.ppm", testleft);

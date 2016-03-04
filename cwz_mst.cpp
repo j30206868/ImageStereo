@@ -68,10 +68,8 @@ void cwz_mst::init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis){
 
 	//for segmentation
 	this->seg_threshold = defaultSegThreshold;
-	this->region_amt_limit = this->node_amt / 10.0;
-	this->root_list = new int*[this->region_amt_limit];
-	for(int i=0 ; i<this->region_amt_limit; i++) this->root_list[i] = new int[2];
-	this->root_list[0][0] = default_root_id;	this->root_list[0][1] = -1;
+	this->root_list = new int[this->node_amt];
+	this->root_list[0] = default_root_id;
 	this->root_list_count = 1;//從1開始, 因為至少會有一顆樹
 	this->can_be_root_node = new bool[this->node_amt];
 	memset(this->can_be_root_node, true, sizeof(bool) * this->node_amt);
@@ -227,9 +225,8 @@ void cwz_mst::seg_kruskal_mst(){
 				node_conn_node_num[n0]++;
 				node_conn_node_num[n1]++;
 			}else{
-				this->root_list[ this->root_list_count ][0] = n0;
-				this->root_list[ this->root_list_count ][1] = n1;
-				this->root_list_count++;
+				this->root_list[ this->root_list_count++ ] = n0;
+				this->root_list[ this->root_list_count++ ] = n1;
 			}
 
 			node_group[p0] = p1;
@@ -241,25 +238,21 @@ void cwz_mst::seg_build_tree(){
 	int possible_child_id = -1;
 	int t_c = 0;//tree node counter
 
-	for(int r_i=0 ; r_i < this->root_list_count ; r_i++){
-		int candidate_r_id = this->root_list[r_i][0];
-		if( this->can_be_root_node[candidate_r_id] ){
-			parent_id      = candidate_r_id;
-			candidate_r_id = this->root_list[r_i][1];
-		}else{ 
-			parent_id = this->root_list[r_i][1];//如果第1個點不行當root, 第2個點一定可以, 否則表示演算法有問題
-		
-			//debug use
-			if( !this->can_be_root_node[parent_id] ){
-				printf("Both node is not able to be root, algorithm may not work, please terminate the program and debug it.\n");
-				system("PAUSE");
-			}//
-		}
+	int root_c = 0;
 
-		this->root_list[r_i][0] = t_c;         //改為紀錄root節點在node_idx_from_p_to_c[]中的index
+	for(int r_i=0 ; r_i < this->root_list_count ; r_i++){
+		parent_id = this->root_list[r_i];
+
+		if(!this->can_be_root_node[parent_id])
+			continue;
+
+		//紀錄該子樹的root位置
+		this->root_list[root_c++] = t_c; //root_c一定會比t_c小, 所以不會有蓋到的問題
+
 		node_idx_from_p_to_c[ t_c ] = parent_id;
-		node_weight[parent_id]    =  0;
-		node_parent_id[parent_id] = -1;
+		node_weight[parent_id]    =  IntensityLimit-1;
+		node_parent_id[parent_id] = parent_id;
+		this->can_be_root_node[parent_id] = false;
 		t_c++;
 
 		do{
@@ -281,10 +274,10 @@ void cwz_mst::seg_build_tree(){
 			parent_id = pop(id_stack, id_stack_e);
 		}while( parent_id != -1 );
 	}
+	this->root_list_count = root_c;
+	//printf("There are %d forest.\n", this->root_list_count);
 
-	if(t_c == this->node_amt){
-		printf("t_c == this->node_amt\n");
-	}else{
+	if(t_c != this->node_amt){
 		printf("t_c != this->node_amt, algorithm error.\n");
 		system("PAUSE");
 	}
@@ -398,10 +391,10 @@ void cwz_mst::profile_mst(){
 			this->counting_sort();
 			total_c_sort += cwz_timer::return_time();
 			cwz_timer::start();
-			this->kruskal_mst();
+			this->seg_kruskal_mst();
 			total_mst += cwz_timer::return_time();
 			cwz_timer::start();
-			this->build_tree();
+			this->seg_build_tree();
 			total_b_tree += cwz_timer::return_time();
 		}
 		printf("redo for %d times and has averaged.\n", test_amt);
@@ -411,7 +404,7 @@ void cwz_mst::profile_mst(){
 		printf("build_tree   : %5.5fs\n"   , total_b_tree/test_amt);
 	}
 	printf("--	endof mst profiling	--\n");
-	system("PAUSE");
+	//system("PAUSE");
 }
 //for reuse
 void cwz_mst::reinit(){
@@ -419,7 +412,7 @@ void cwz_mst::reinit(){
 	for(int i=0 ; i<this->node_amt ; i++){ this->node_group[i] = i; }
 	memset(this->node_conn_node_num, 0, sizeof(int) * this->node_amt);
 	//for segmentation
-	this->root_list[0][0] = default_root_id;	this->root_list[0][1] = -1;
+	this->root_list[0] = default_root_id;
 	this->root_list_count = 1;
 	memset(this->can_be_root_node, true, sizeof(bool) * this->node_amt);
 	//
@@ -447,6 +440,12 @@ void cwz_mst::updateWtoOne(bool _setWtoOne){
 			cwz_mst::whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
 	}
 }
+
+//for segmentation
+int *cwz_mst::get_root_list(){return this->root_list;}
+int cwz_mst::get_root_list_count(){return this->root_list_count;}
+int *cwz_mst::get_node_idx_from_p_to_c(){return this->node_idx_from_p_to_c;}
+//
 
 void compute_gradient(float*gradient, uchar **gray_image, int h, int w)
 {

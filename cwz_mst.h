@@ -38,6 +38,12 @@ public:
 	//for reuse
 	void reinit();
 
+	//for segmentation
+	int *get_root_list();
+	int get_root_list_count();
+	int *get_node_idx_from_p_to_c();
+	//
+
 	TEleUnit *best_disparity;
 private:
 	int findset(int i);
@@ -62,8 +68,7 @@ private:
 
 	//for segmentation
 	int seg_threshold;
-	int region_amt_limit;
-	int **root_list;
+	int *root_list;
 	int root_list_count;
 	bool *can_be_root_node;
 	//

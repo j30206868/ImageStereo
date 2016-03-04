@@ -158,9 +158,39 @@ uchar *dmap_gen::generate_left_dmap(){
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
 	mst_L.set_img(left_img_arr_for_mst);
-
 	mst_L.profile_mst();
 	//mst_L.mst();
+
+	//for segmentation test
+	int *node_idx_from_p_to_c = mst_L.get_node_idx_from_p_to_c();
+	int *r_list = mst_L.get_root_list();
+	int r_c = mst_L.get_root_list_count();
+	
+	uchar *img_data = this->left_img_arr_for_mst;
+	uchar _r = 0, _g = 0, _b = 0;
+	int r_e = 1;
+	int _end_id = (r_list[r_e]-1) * 3;
+	for(int i=0 ; i<this->info.node_c; i++){
+		int _id = node_idx_from_p_to_c[i] * 3;
+		img_data[_id]   = _b;
+		img_data[_id+1] = _g;
+		img_data[_id+2] = _r;
+
+		if( _id >= _end_id){
+			_r = rand() % 255;
+			_g = rand() % 255;
+			_b = rand() % 255;
+
+			r_e++;
+			if(r_e < r_c)//還有下個root
+			{
+				_end_id = (r_list[r_e]-1) * 3;
+			}else
+				_end_id = this->info.node_c * 3;
+		}
+	}
+	show_cv_img("left_img_arr_for_mst", left_img_arr_for_mst, info.img_height, info.img_width, 3);
+	//
 
 	int match_result_len = info.img_height * info.img_width * info.max_x_d;
 	float *matching_result = mst_L.get_agt_result();
