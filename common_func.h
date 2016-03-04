@@ -24,7 +24,7 @@
 #define defaultSegThreshold 8
 const float default_sigma = 0.1;
 const bool img_pre_mdf = false;
-const bool mst_pre_mdf = true;
+const bool mst_pre_mdf = false;
 const bool depth_post_mdf = true;
 
 #define CWZ_SHOW_LEFT_DMAP false

@@ -29,14 +29,14 @@
 
 //const char* LeftIMGName  = "tsukuba/scene1.row3.col1.ppm"; 
 //const char* RightIMGName = "tsukuba/scene1.row3.col3.ppm";
-const char* LeftIMGName  = "face/face1.png"; 
-const char* RightIMGName = "face/face2.png";
+//const char* LeftIMGName  = "face/face1.png"; 
+//const char* RightIMGName = "face/face2.png";
 //const char* LeftIMGName  = "dolls/dolls1.png"; 
 //const char* RightIMGName = "dolls/dolls2.png";
 //const char* LeftIMGName  = "structure/struct_left.bmp"; 
 //const char* RightIMGName = "structure/struct_right.bmp";
-//const char* LeftIMGName  = "ImgSeries/left01.bmp"; 
-//const char* RightIMGName = "ImgSeries/right01.bmp";
+const char* LeftIMGName  = "ImgSeries/left01.bmp"; 
+const char* RightIMGName = "ImgSeries/right01.bmp";
 
 const int CWZ_STATUS_KEEPGOING = 0;
 const int CWZ_STATUS_FRAME_BY_FRAME = 1;
@@ -187,8 +187,8 @@ int main()
 	int method = default_method;
 	char ch;
 	do{
-		show_cv_img("左影像", left.data, diffLm.rows, diffLm.cols, 3, false);
-		show_cv_img("右影像", right.data, diffRm.rows, diffRm.cols, 3, false);
+		//show_cv_img("左影像", left.data, diffLm.rows, diffLm.cols, 3, false);
+		//show_cv_img("右影像", right.data, diffRm.rows, diffRm.cols, 3, false);
 
 		cv::Mat refinedDMap(sub_h, sub_w, CV_8UC1);
 		if(method == CWZ_MEDTHO_CV_SGNM)

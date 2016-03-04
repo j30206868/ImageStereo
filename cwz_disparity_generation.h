@@ -160,7 +160,7 @@ uchar *dmap_gen::generate_left_dmap(){
 	mst_L.set_img(left_img_arr_for_mst);
 	mst_L.profile_mst();
 	//mst_L.mst();
-
+	show_cv_img("before segmentation", left_img_arr_for_mst, info.img_height, info.img_width, 3);
 	//for segmentation test
 	int *node_idx_from_p_to_c = mst_L.get_node_idx_from_p_to_c();
 	int *r_list = mst_L.get_root_list();
