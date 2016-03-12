@@ -60,7 +60,8 @@ void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_nu
 
 int processInputKey(int inputkey, int &status, int &frame_count, int &method);//will return shouldbreak or not
 void apply_opencv_stereoSGNM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap, match_info info);
-
+void show1dGradient(const char *str, float *gradient_float, uchar *gradient_ch, int h, int w);
+void showEdge(cv::Mat &left, cv::Mat &right, cv::Mat &left_g, cv::Mat &right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size);
 
 int main()
 {
@@ -104,6 +105,7 @@ int main()
 	cv::Mat right; 
 	cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
 	cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));
+
 	//cvmat_subsampling(left_b , left , 3, down_sample_pow);
 	//cvmat_subsampling(right_b, right, 3, down_sample_pow);
 	/************************************/
@@ -165,6 +167,23 @@ int main()
 	info.max_x_d = info.img_width  / max_d_to_img_len_pow; 
 	info.node_c = info.img_height * info.img_width;
 
+	//for edge extraction
+	int edgeThresh = 3;
+	int lowThreshold = 5;
+	int const max_lowThreshold = 100;
+	int ratio = 2;
+	int kernel_size = 3;
+	char* window_name = "Edge Map";
+	cv::Mat left_g(sub_info.img_height, sub_info.img_width, CV_8UC1);
+	cv::Mat right_g(sub_info.img_height, sub_info.img_width, CV_8UC1);
+	cv::Mat left_edge(sub_info.img_height, sub_info.img_width, CV_8UC1);
+	cv::Mat right_edge(sub_info.img_height, sub_info.img_width, CV_8UC1);
+	//
+	//for gradient
+	uchar *left_grad_ch = new uchar[sub_info.node_c];
+	uchar *right_grad_ch = new uchar[sub_info.node_c];
+	//
+
 	dmap_gen dmap_generator;
 	dmap_refine dmap_ref;
 	dmap_upsam dmap_ups;
@@ -181,10 +200,10 @@ int main()
 
 	int frame_count = 1;
 
-	cv::Mat lastLm = cv::Mat(info.img_height, info.img_width, CV_8UC3);
-	cv::Mat lastRm = cv::Mat(info.img_height, info.img_width, CV_8UC3);
-	cv::Mat diffLm = cv::Mat(info.img_height, info.img_width, CV_8UC3);
-	cv::Mat diffRm = cv::Mat(info.img_height, info.img_width, CV_8UC3);
+	cv::Mat lastLm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
+	cv::Mat lastRm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
+	cv::Mat diffLm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
+	cv::Mat diffRm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
 	int status = CWZ_STATUS_FRAME_BY_FRAME;
 	int method = default_method;
 	char ch;
@@ -194,7 +213,7 @@ int main()
 
 		cv::Mat refinedDMap(sub_h, sub_w, CV_8UC1);
 		if(method == CWZ_MEDTHO_CV_SGNM)
-			apply_opencv_stereoSGNM(left, right, refinedDMap, info);
+			apply_opencv_stereoSGNM(left, right, refinedDMap, sub_info);
 		else if(method == CWZ_METHOD_TREE)
 		{
 			cwz_timer::t_start();
@@ -214,7 +233,7 @@ int main()
 			cwz_timer::time_display("- generate left map -");
 
 			if(CWZ_SHOW_LEFT_DMAP)
-				show_cv_img("left_dmap", left_dmap, info.img_height, info.img_width, 1, false);
+				show_cv_img("left_dmap", left_dmap, sub_info.img_height, sub_info.img_width, 1, false);
 
 			cwz_timer::start();
 			if( !(right_dmap = dmap_generator.generate_right_dmap()) )
@@ -222,7 +241,7 @@ int main()
 			cwz_timer::time_display("- generate right map -");
 
 			if(CWZ_SHOW_RIGHT_DMAP)
-				show_cv_img("right_dmap", right_dmap, info.img_height, info.img_width, 1, false);
+				show_cv_img("right_dmap", right_dmap, sub_info.img_height, sub_info.img_width, 1, false);
 		
 			//dmap_ref.set_left_right_dmap_value(left_dmap, right_dmap);
 			cwz_timer::start();
@@ -249,7 +268,7 @@ int main()
 				idx++;
 			}
 
-			if(down_sample_pow > 1){
+			/*if(down_sample_pow > 1){
 				cv::Mat upDMap(info.img_height, info.img_width, CV_8U);
 				idx = 0;
 				for(int y=0 ; y<info.img_height ; y++) for(int x=0 ; x<info.img_width ; x++)
@@ -262,11 +281,13 @@ int main()
 				cv::namedWindow("upDMap", CV_WINDOW_KEEPRATIO);
 				cv::imshow("upDMap",upDMap);
 				cv::waitKey(0);
-			}
+			}*/
 
 			dmap_generator.mst_L.reinit();
 			dmap_generator.mst_R.reinit();
-			dmap_ups.mst_b.reinit();
+			if(down_sample_pow > 1){
+				dmap_ups.mst_b.reinit();
+			}
 		}//end of method tree filtering
 		
 		//顯示深度影像 並在window標題加上frame_count編號
@@ -286,13 +307,13 @@ int main()
         cv::imwrite(sstm.str().c_str(), refinedDMap);
 
 		//紀錄與上張影像不同的地方
-		for(int i=0 ; i<info.img_height*info.img_width*3 ; i++){
+		for(int i=0 ; i<sub_info.img_height*sub_info.img_width*3 ; i++){
 			diffLm.data[i] = std::abs(lastLm.data[i] - left.data[i]);
 			diffRm.data[i] = std::abs(lastRm.data[i] - right.data[i]);
 		}
-		uchar *diff_gray_left = new uchar[info.img_height*info.img_width * 3];
-		uchar *diff_gray_right = new uchar[info.img_height*info.img_width * 3];
-		for(int i=0 ; i<info.img_height*info.img_width ; i++){
+		uchar *diff_gray_left = new uchar[sub_info.img_height*sub_info.img_width * 3];
+		uchar *diff_gray_right = new uchar[sub_info.img_height*sub_info.img_width * 3];
+		for(int i=0 ; i<sub_info.img_height*sub_info.img_width ; i++){
 			int _i = i*3;
 			int leftdv  = (max_rgb( &(diffLm.data[_i]) ));
 			int rightdv = (max_rgb( &(diffRm.data[_i]) ));
@@ -320,11 +341,17 @@ int main()
 		//show差值圖
 		//show_cv_img("leftdiff", diffLm.data, diffLm.rows, diffLm.cols, 3, false);
 		//show_cv_img("rightdiff", diffRm.data, diffRm.rows, diffRm.cols, 3, false);
-		show_cv_img("左前後差值圖", diff_gray_left, diffLm.rows, diffLm.cols, 3, false);
-		show_cv_img("右前後差值圖", diff_gray_right, diffRm.rows, diffRm.cols, 3, false);
+		//show_cv_img("左前後差值圖", diff_gray_left, diffLm.rows, diffLm.cols, 3, false);
+		//show_cv_img("右前後差值圖", diff_gray_right, diffRm.rows, diffRm.cols, 3, false);
+		
+		//edge extraction
+		//showEdge(left, right, left_g, right_g, left_edge, right_edge, lowThreshold, ratio, kernel_size);
+		show1dGradient("Left 1D Gradient", dmap_generator.left_cwz_img->gradient, left_grad_ch, sub_info.img_height, sub_info.img_width);
+		show1dGradient("Right 1D Gradient", dmap_generator.right_cwz_img->gradient, right_grad_ch, sub_info.img_height, sub_info.img_width);
+		//
 
 		//儲存上一張影像
-		for(int i=0 ; i<info.img_height*info.img_width*3 ; i++){
+		for(int i=0 ; i<sub_info.img_height*sub_info.img_width*3 ; i++){
 			lastLm.data[i] = left.data[i];
 			lastRm.data[i] = right.data[i];
 		}
@@ -337,8 +364,16 @@ int main()
 
 		// Read Images for next loop
 		frame_count++;
-		read_image(left, "ImgSeries/left", frame_count);
-		read_image(right, "ImgSeries/right", frame_count);
+		
+		if(down_sample_pow == 1){
+			read_image(left, "ImgSeries/left", frame_count);
+			read_image(right, "ImgSeries/right", frame_count);
+		}else{
+			read_image(left_b, "ImgSeries/left", frame_count);
+			read_image(right_b, "ImgSeries/right", frame_count);
+			cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
+			cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));
+		}
 
 	//}while((ch = getchar()) != 'e');
 	}while(!left.empty()&&!right.empty());
@@ -360,6 +395,39 @@ int main()
 	clReleaseContext(context);
 
 	return 0;
+}
+void show1dGradient(const char *str, float *gradient_float, uchar *gradient_ch, int h, int w){
+	double th = 127.5;
+	double step = 2.5;
+	printf("show1d gradient threshold boundry +-%1.1f\n", step);
+	uchar upTh  = th + step;
+	uchar btmTh = th - step;
+	for(int i=0 ; i<w*h ; i++){
+		uchar tmp = (uchar)cvRound(gradient_float[i]);
+		if(tmp > btmTh && tmp < upTh ){
+			gradient_ch[i] = 0;
+		}else{
+			gradient_ch[i] = tmp;
+		}
+		//gradient_ch[i] = tmp;
+	}
+	show_cv_img(str, gradient_ch, h, w, 1, false);
+}
+void showEdge(cv::Mat &left, cv::Mat &right, cv::Mat &left_g, cv::Mat &right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size){
+	//edge extraction
+	//left_g.data = dmap_generator.left_gray_1d_arr;
+	//right_g.data = dmap_generator.right_gray_1d_arr;
+	cvtColor( left, left_g, CV_BGR2GRAY );
+	cvtColor( right, right_g, CV_BGR2GRAY );
+	blur( left_g, left_edge, cv::Size(5,5) );
+	blur( right_g, right_edge, cv::Size(5,5) );
+	cwz_timer::start();
+	Canny( left_edge, left_edge, lowThreshold, lowThreshold*ratio, kernel_size );
+	Canny( right_edge, right_edge, lowThreshold, lowThreshold*ratio, kernel_size );
+	cwz_timer::time_display("Canny edge of left and right");
+	show_cv_img("Left Edge", left_edge.data, left_edge.rows, left_edge.cols, 1, false);
+	show_cv_img("Right Edge", right_edge.data, right_edge.rows, right_edge.cols, 1, false);
+	//
 }
 
 int processInputKey(int inputkey, int &status, int &frame_count, int &method){

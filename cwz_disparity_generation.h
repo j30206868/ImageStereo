@@ -21,9 +21,6 @@ private:
 	cl_program program; 
 	cl_int err;
 
-	cl_match_elem *left_cwz_img;
-	cl_match_elem *right_cwz_img;
-
 	float *left_1d_gradient;
 	float *right_1d_gradient;
 
@@ -47,6 +44,9 @@ private:
 public:
 	uchar *left_dmap;
 	uchar *right_dmap;
+
+	cl_match_elem *left_cwz_img;
+	cl_match_elem *right_cwz_img;
 
 	cwz_mst mst_L;
 	cwz_mst mst_R;
