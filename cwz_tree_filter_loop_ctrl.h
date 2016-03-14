@@ -2,9 +2,6 @@
 #define CWZ_TREE_FILTER_LOOP_CTRL_H
 
 #include "common_func.h"
-#include "cwz_disparity_generation.h"
-
-
 
 class cwz_cmd_processor{
 private:
@@ -23,9 +20,6 @@ cwz_cmd_processor::cwz_cmd_processor(int *_frame_count){
 
 void cwz_cmd_processor::showRule(){
 	printf("Modify parameter command rule:\n");
-	std::cout << "s=0~1" << "; sigma value by now:" << cwz_mst::sigma << std::endl;
-	const char *wtoonestate = cwz_mst::setWtoOne?"True":"False";
-	std::cout << "wto1=0 or 1" << "; setWtoOne value by now:" << wtoonestate << std::endl;
 	std::cout << "img=number" << "; jump to specified image number" << std::endl;
 }
 
@@ -47,13 +41,9 @@ bool cwz_cmd_processor::readTreeLoopCommandStr(){
 	for(int i=0 ; i<cmd_arr_length ; i+=2){
 		//blocks[i] = °Ñ¼Æ ; blocks[i+1] = ­È
 		if(blocks[i] == "s"){
-			float new_sigma = atof(blocks[i+1].c_str());
-			cwz_mst::updateSigma( new_sigma );
-			printf("update cwz_mst::sigma to %f\n", new_sigma);
+
 		}else if(blocks[i] == "wto1"){
-			bool new_setwtoone = atoi(blocks[i+1].c_str());
-			cwz_mst::updateWtoOne( new_setwtoone );
-			printf("update cwz_mst::WtoOne to %s\n", new_setwtoone?"True":"False" );
+
 		}else if(blocks[i] == "img"){
 			*this->frame_count = std::atoi(blocks[i+1].c_str());
 			printf("Jump to image number %d\n", *this->frame_count);

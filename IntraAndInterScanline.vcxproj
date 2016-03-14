@@ -12,7 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{59F70D96-DBB4-436F-BFB0-8BA371522C9D}</ProjectGuid>
-    <RootNamespace>OpenCL</RootNamespace>
+    <RootNamespace>IntraAndInterScanline</RootNamespace>
+    <ProjectName>IntraAndInterScanline</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -85,7 +86,6 @@
     <ClCompile Include="cwz_integral_img.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="cwz_mst.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -96,8 +96,6 @@
     <ClInclude Include="cwz_cl_data_type.h" />
     <ClInclude Include="common_func.h" />
     <ClInclude Include="cwz_integral_img.h" />
-    <ClInclude Include="cwz_mst.h" />
-    <ClInclude Include="cwz_disparity_generation.h" />
     <ClInclude Include="cwz_tree_filter_loop_ctrl.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
