@@ -10,7 +10,9 @@
 #include "cwz_cl_data_type.h"
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_mst.h"
+#include "cwz_integral_img.h"
 
+#define DMAP_GEN_GIF_TYPE float
 class dmap_gen{
 private:
 	match_info info;
@@ -32,6 +34,12 @@ private:
 	uchar **left_gray_2d_arr;
 	uchar **right_gray_2d_arr;
 
+	//for grayscale guided image filtering
+	guided_img<DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE> *gfilter;
+	DMAP_GEN_GIF_TYPE *normalized_left_gray_img;
+	DMAP_GEN_GIF_TYPE *normalized_right_gray_img;
+	//
+
 	int * left_color_mdf_1d_arr;
 	int *right_color_mdf_1d_arr;
 
@@ -42,6 +50,7 @@ private:
 	int *left_color_1d_for_3_mst;
 	int *right_color_1d_for_3_mst;
 public:
+	bool doGuildFiltering;
 	uchar *left_dmap;
 	uchar *right_dmap;
 
@@ -102,6 +111,14 @@ void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_pr
 		right_color_1d_for_3_mst = new int[info.node_c];
 	}
 
+	//for grayscale guided image filtering
+	doGuildFiltering = DoGuidedFiltering;
+	this->gfilter = new guided_img<DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE>();
+	this->gfilter->init(NULL, NULL, info.img_width, info.img_height);
+	this->normalized_left_gray_img  = new DMAP_GEN_GIF_TYPE[info.node_c];
+	this->normalized_right_gray_img = new DMAP_GEN_GIF_TYPE[info.node_c];
+	//
+
 	mst_L.init(h, w, channel, info.max_x_d, info.max_y_d);
 	mst_R.init(h, w, channel, info.max_x_d, info.max_y_d);
 }
@@ -145,6 +162,15 @@ void dmap_gen::compute_cwz_img(){
 	int_1d_to_gray_arr(left_color_1d_arr , left_gray_1d_arr , info.node_c);
 	int_1d_to_gray_arr(right_color_1d_arr, right_gray_1d_arr, info.node_c);
 
+	//guided img filtering before compute gradient
+	if(this->doGuildFiltering){
+		cwz_timer::start();
+		apply_gray_guided_img_filtering<DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE>
+			(left_gray_1d_arr, this->info.img_height, this->info.img_width, this->normalized_left_gray_img, *this->gfilter);
+		apply_gray_guided_img_filtering<DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE>
+			(right_gray_1d_arr, this->info.img_height, this->info.img_width, this->normalized_right_gray_img, *this->gfilter);
+		cwz_timer::time_display("Left and Right grayscale guided image filtering");
+	}
 	/************************************************************************
 				用來產生gradient的灰階圖不要做median filtering
 				否則模糊後邊界會失真

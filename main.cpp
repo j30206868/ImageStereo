@@ -22,8 +22,7 @@
 #include "cwz_mst.h"
 #include "cwz_disparity_generation.h"
 #include "cwz_tree_filter_loop_ctrl.h"
-
-
+#include "cwz_integral_img.h"
 
 // for change window name
 #define _AFXDLL
