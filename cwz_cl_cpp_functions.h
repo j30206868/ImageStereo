@@ -48,6 +48,22 @@ cl_device_id setup_opencl(cl_context &context, cl_int &err){
 		std::cerr << "Unable to get platform ID\n";
 		return 0;
 	}
+	/*printf("There are %d OpenCL platforms.\n", num);
+	for(int i=0 ; i<num ; i++){
+		char buffer[10240];
+		printf("  -- %d --\n", i+1);
+		(clGetPlatformInfo(platforms[i], CL_PLATFORM_PROFILE, 10240, buffer, NULL));
+		printf("  PROFILE = %s\n", buffer);
+		(clGetPlatformInfo(platforms[i], CL_PLATFORM_VERSION, 10240, buffer, NULL));
+		printf("  VERSION = %s\n", buffer);
+		(clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, 10240, buffer, NULL));
+		printf("  NAME = %s\n", buffer);
+		(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, 10240, buffer, NULL));
+		printf("  VENDOR = %s\n", buffer);
+		(clGetPlatformInfo(platforms[i], CL_PLATFORM_EXTENSIONS, 10240, buffer, NULL));
+		printf("  EXTENSIONS = %s\n", buffer);
+		printf("  ---------\n");
+	}*/
 
 	cl_context_properties prop[] = { CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(platforms[0]), 0 };
 	context = clCreateContextFromType(prop, CL_DEVICE_TYPE_DEFAULT, NULL, NULL, NULL);
@@ -56,16 +72,18 @@ cl_device_id setup_opencl(cl_context &context, cl_int &err){
 		return 0;
 	}
 
-	size_t cb;
-	clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &cb);
-	std::vector<cl_device_id> devices(cb / sizeof(cl_device_id));
-	clGetContextInfo(context, CL_CONTEXT_DEVICES, cb, &devices[0], 0);
+	
+	cl_device_id devices[100];
+	cl_uint devices_n = 0;
+	// CL_CHECK(clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, 100, devices, &devices_n));
+	clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 100, devices, &devices_n);
+	printf("There are %d devices\n", devices_n);
+	uchar buffer[1024];
+	for(int i=0 ; i<devices_n ; i++){
+		printf("device id: %d \n",devices[i] );
+		printDeviceInfo(devices[i]);
+	}
 
-	clGetDeviceInfo(devices[0], CL_DEVICE_NAME, 0, NULL, &cb);
-	std::string devname;
-	devname.resize(cb);
-	clGetDeviceInfo(devices[0], CL_DEVICE_NAME, cb, &devname[0], 0);
-	std::cout << "Device: " << devname.c_str() << "\n";
 	return devices[0];
 }
 int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 

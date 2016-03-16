@@ -21,6 +21,7 @@
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_tree_filter_loop_ctrl.h"
 #include "cwz_integral_img.h"
+#include "cwz_edge_detector.h"
 
 // for change window name
 #define _AFXDLL
@@ -54,21 +55,6 @@ void showEdge(cv::Mat &left, cv::Mat &right, cv::Mat &left_g, cv::Mat &right_g, 
 
 int main()
 {
-	/*cv::Mat testleft = cv::imread("ImgSeries/left52.bmp", CV_LOAD_IMAGE_COLOR);
-	cv::Mat testright = cv::imread("ImgSeries/right52.bmp", CV_LOAD_IMAGE_COLOR);
-	cv::imwrite("ImgSeries/left52.ppm", testleft);
-	cv::imwrite("ImgSeries/right52.ppm", testright);
-	show_cv_img("dmap52.ppm", 1, true*/
-	/*cv::Mat hand = cv::imread("eye.png", CV_LOAD_IMAGE_GRAYSCALE);
-	cv::Mat tmp = hand.clone();
-
-	for(int i=0 ; i<=45 ; i++){
-		img_rotate_8UC1(1, tmp, hand);
-
-		cv::namedWindow("rightDMap", CV_WINDOW_KEEPRATIO);
-		cv::imshow("rightDMap",hand);
-		cv::waitKey(0);
-	}*/
 	const int down_sample_pow = 1;
 
 	/*******************************************************
@@ -78,13 +64,9 @@ int main()
 	cl_context context;
 	cl_device_id device = setup_opencl(context, err);
 
-	cl_program program = load_program(context, "test.cl");
-	if(program == 0) { std::cerr << "Can't load or build program\n"; clReleaseContext(context); return 0; }
+	//cl_program edge_detect_cl = load_program(context, "edge_detect.cl");
+	//if(edge_detect_cl == 0) { std::cerr << "Can't load or build edge_detect_cl\n"; clReleaseContext(context); return 0; }
 
-	//cv::Mat ppmimg = cv::imread("hand.ppm");
-	//cv::imwrite("hand_mst_no_ctmf.bmp", ppmimg);
-
-	//build MST
 	cv::Mat left_b  = cv::imread(LeftIMGName , CV_LOAD_IMAGE_COLOR);
 	cv::Mat right_b = cv::imread(RightIMGName, CV_LOAD_IMAGE_COLOR);
 
@@ -93,48 +75,6 @@ int main()
 	cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
 	cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));
 
-	//cvmat_subsampling(left_b , left , 3, down_sample_pow);
-	//cvmat_subsampling(right_b, right, 3, down_sample_pow);
-	/************************************/
-
-	/*cv::FileStorage fs("imageLR.xml", cv::FileStorage::READ);
-    if( fs.isOpened() == false){
-        printf( "No More....Quitting...!" );
-        return 0;
-    }
-
-    cv::Mat matL , matR; //= Mat(480, 640, CV_16UC1);
-    fs["left"] >> matL; 
-	fs["right"] >> matR;                
-    fs.release();
-
-	cv::Mat left_b = cv::Mat(480, 640, CV_8UC3);
-	cv::Mat right_b = cv::Mat(480, 640, CV_8UC3);
-
-	for(int y=0; y<left_b.rows ; y++){
-		int x_ = 0;
-		for(int x=0; x<left_b.cols ; x++)
-		{
-			uchar lvalue = matL.at<unsigned short>(y, x) / 4;
-			left_b.at<uchar>(y, x_  ) = lvalue;
-			left_b.at<uchar>(y, x_+1) = lvalue;
-			left_b.at<uchar>(y, x_+2) = lvalue;
-
-			uchar rvalue = matR.at<unsigned short>(y, x) / 4;
-			right_b.at<uchar>(y, x_  ) = rvalue;
-			right_b.at<uchar>(y, x_+1) = rvalue;
-			right_b.at<uchar>(y, x_+2) = rvalue;
-
-			x_+=3;
-		}
-	}
-
-	cv::Mat left; 
-	cv::Mat right; 
-	cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
-	cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));
-
-	/************************************/
 //sub sampling and producing sub sampled depth map
 	int sub_w = left.cols;
 	int sub_h = left.rows;
@@ -146,6 +86,9 @@ int main()
 	sub_info.max_y_d = sub_h / max_d_to_img_len_pow; 
 	sub_info.node_c  = sub_h * sub_w;
 	sub_info.printf_match_info("縮小影像資訊");
+
+	cwz_edge_detector edgeDetector;
+	edgeDetector.init(context, device, sub_w, sub_h);
 
 	match_info info;
 	info.img_height = left_b.rows; 
@@ -177,28 +120,36 @@ int main()
 
 	int frame_count = 1;
 
-	cv::Mat lastLm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
-	cv::Mat lastRm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
-	cv::Mat diffLm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
-	cv::Mat diffRm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
 	int status = CWZ_STATUS_FRAME_BY_FRAME;
 	int method = default_method;
 	char ch;
 	do{
-		show_cv_img("左影像", left.data, diffLm.rows, diffLm.cols, 3, false);
-		show_cv_img("右影像", right.data, diffRm.rows, diffRm.cols, 3, false);
+		show_cv_img("左影像", left.data, left.rows, left.cols, 3, false);
+		show_cv_img("右影像", right.data, right.rows, right.cols, 3, false);
 
 		cv::Mat edgeMap(sub_h, sub_w, CV_8UC1);
 		
+		cvtColor( left, left_g, CV_BGR2GRAY );
+		cvtColor( right, right_g, CV_BGR2GRAY );
+
+		EDGE_DETECT_RESULT_TYPE *left_result  = new EDGE_DETECT_RESULT_TYPE[sub_info.node_c];
+		EDGE_DETECT_RESULT_TYPE *right_result = new EDGE_DETECT_RESULT_TYPE[sub_info.node_c];
+
+		edgeDetector.edgeDetect(left_g.data, left_result);
+		edgeDetector.edgeDetect(right_g.data, right_result);
+
+		show_cv_img("left_edge", left_edge.data, left_edge.rows, left_edge.cols, 1, false);
+		show_cv_img("right_edge", right_edge.data, right_edge.rows, right_edge.cols, 1, false);
+
 		//顯示深度影像 並在window標題加上frame_count編號
 		std::stringstream sstm;
-		sstm << "深度影像(" << frame_count << ")";
+		/*sstm << "深度影像(" << frame_count << ")";
 		cv::namedWindow("深度影像", CV_WINDOW_KEEPRATIO);
 		HWND hWnd = (HWND)cvGetWindowHandle("深度影像");
 		CWnd *wnd = CWnd::FromHandle(hWnd);
 		CWnd *wndP = wnd->GetParent();
 		wndP->SetWindowText((const char *) sstm.str().c_str()); 
-		cv::imshow("深度影像",edgeMap);
+		cv::imshow("深度影像",edgeMap);*/
 		char inputkey = cv::waitKey(30);
 
 		//儲存深度影像結果
@@ -206,53 +157,10 @@ int main()
         sstm << "ImgSeries/dmap_" << frame_count << ".bmp";
         cv::imwrite(sstm.str().c_str(), edgeMap);
 
-		//紀錄與上張影像不同的地方
-		for(int i=0 ; i<sub_info.img_height*sub_info.img_width*3 ; i++){
-			diffLm.data[i] = std::abs(lastLm.data[i] - left.data[i]);
-			diffRm.data[i] = std::abs(lastRm.data[i] - right.data[i]);
-		}
-		uchar *diff_gray_left = new uchar[sub_info.img_height*sub_info.img_width * 3];
-		uchar *diff_gray_right = new uchar[sub_info.img_height*sub_info.img_width * 3];
-		for(int i=0 ; i<sub_info.img_height*sub_info.img_width ; i++){
-			int _i = i*3;
-			int leftdv  = (max_rgb( &(diffLm.data[_i]) ));
-			int rightdv = (max_rgb( &(diffRm.data[_i]) ));
-
-			for(int j=0 ; j<3 ; j++)diff_gray_left[_i+j]=0;
-			for(int j=0 ; j<3 ; j++)diff_gray_right[_i+j]=0;
-
-			if(leftdv > 50){
-				diff_gray_left[_i+1]=leftdv;
-			}else if(leftdv > 10){
-				diff_gray_left[_i+2]=leftdv * 5;
-			}else if(leftdv > 0){
-				diff_gray_left[_i]=leftdv * 25;
-			}
-
-			if(rightdv > 50){
-				diff_gray_right[_i+1]=rightdv;
-			}else if(rightdv > 10){
-				diff_gray_right[_i+2]=rightdv * 5;
-			}else if(rightdv > 0){
-				diff_gray_right[_i]=rightdv * 25;
-			}
-		}
-
-		//show差值圖
-		//show_cv_img("leftdiff", diffLm.data, diffLm.rows, diffLm.cols, 3, false);
-		//show_cv_img("rightdiff", diffRm.data, diffRm.rows, diffRm.cols, 3, false);
-		//show_cv_img("左前後差值圖", diff_gray_left, diffLm.rows, diffLm.cols, 3, false);
-		//show_cv_img("右前後差值圖", diff_gray_right, diffRm.rows, diffRm.cols, 3, false);
 		
 		//edge extraction
 		//showEdge(left, right, left_g, right_g, left_edge, right_edge, lowThreshold, ratio, kernel_size);
 		//
-
-		//儲存上一張影像
-		for(int i=0 ; i<sub_info.img_height*sub_info.img_width*3 ; i++){
-			lastLm.data[i] = left.data[i];
-			lastRm.data[i] = right.data[i];
-		}
 
 		// Loop Status Control
 		int prcResult = processInputKey(inputkey, status, frame_count, method);
@@ -275,22 +183,10 @@ int main()
 
 	//}while((ch = getchar()) != 'e');
 	}while(!left.empty()&&!right.empty());
-	//
 
-	//cv::imwrite("leftDMap.bmp", leftDMap);
-	//cv::imwrite("rightDMap.bmp", rightDMap);
-
-	/*cv::namedWindow("leftDMap", CV_WINDOW_KEEPRATIO);
-	cv::imshow("leftDMap",leftDMap);
-	cv::waitKey(0);
-	cv::namedWindow("rightDMap", CV_WINDOW_KEEPRATIO);
-	cv::imshow("rightDMap",rightDMap);
-	cv::waitKey(0);*/
-
-	//system("PAUSE");
-
-	clReleaseProgram(program);
+	//clReleaseProgram(edge_detect_cl);
 	clReleaseContext(context);
+	edgeDetector.releaseRes();
 
 	return 0;
 }
@@ -356,33 +252,4 @@ int processInputKey(int inputkey, int &status, int &frame_count, int &method){
 		return result_continue;
 	}
 	return result_nothing;
-}
-
-void apply_opencv_stereoSGNM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap, match_info info){
-	int SADWindowSize= 5;
-	int numberOfDisparities = info.max_x_d;
-	int cn = left.channels();
-
-	cv::Ptr<cv::StereoSGBM> sgbm = new cv::StereoSGBM(0,16,SADWindowSize);
-	int color_mode = CV_LOAD_IMAGE_COLOR;
-    cv::Size img_size = left.size();
-	sgbm->preFilterCap = 63;
-	sgbm->SADWindowSize = SADWindowSize;
-	sgbm->P1 = 8*cn*SADWindowSize*SADWindowSize;
-	sgbm->P2 = 32*cn*SADWindowSize*SADWindowSize;
-	sgbm->minDisparity = 0;
-	sgbm->numberOfDisparities = numberOfDisparities;
-	sgbm->uniquenessRatio = 10;
-	sgbm->speckleWindowSize = 100;
-	sgbm->speckleRange = 32;
-	sgbm->disp12MaxDiff = 1;
-
-    cv::Mat disp;
-
-    int64 t = cv::getTickCount();
-    (*sgbm)(left, right, disp);    
-    t = cv::getTickCount() - t;
-    printf("Time elapsed: %fms\n", t*1000/cv::getTickFrequency());
-
-    disp.convertTo(refinedDMap, CV_8U, 255/(numberOfDisparities*16.));
 }

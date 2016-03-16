@@ -18,6 +18,47 @@ void match_info::printf_match_info(const char *str){
 	printf("max_x_d:%3d | max_y_d:%3d\n", max_x_d, max_y_d);
 }
 
+void printDeviceInfo(cl_device_id device){
+	char buffer[10240];
+	cl_uint buf_uint;
+	cl_ulong buf_ulong;
+	clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL);
+	printf("  DEVICE_NAME = %s\n", buffer);
+	clGetDeviceInfo(device, CL_DEVICE_VENDOR, sizeof(buffer), buffer, NULL);
+	printf("  DEVICE_VENDOR = %s\n", buffer);
+	clGetDeviceInfo(device, CL_DEVICE_VERSION, sizeof(buffer), buffer, NULL);
+	printf("  DEVICE_VERSION = %s\n", buffer);
+	clGetDeviceInfo(device, CL_DRIVER_VERSION, sizeof(buffer), buffer, NULL);
+	printf("  DRIVER_VERSION = %s\n", buffer);
+	clGetDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
+	printf("  DEVICE_MAX_COMPUTE_UNITS = %u\n", (unsigned int)buf_uint);
+	clGetDeviceInfo(device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
+	printf("  DEVICE_MAX_CLOCK_FREQUENCY = %u\n", (unsigned int)buf_uint);
+	clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("  DEVICE_GLOBAL_MEM_SIZE = %llu\n", (unsigned long long)buf_ulong);
+	clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("  CL_DEVICE_LOCAL_MEM_SIZE = %llu\n", (unsigned long long)buf_ulong);
+
+	clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("  CL_DEVICE_MAX_WORK_GROUP_SIZE = %llu\n", (unsigned long long)buf_ulong);
+
+	clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("  CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS = %llu\n", (unsigned long long)buf_ulong);
+	size_t max_items[3];
+	clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(max_items), &max_items, NULL);
+	printf("  CL_DEVICE_MAX_WORK_ITEM_SIZES = (%d, %d, %d)\n", max_items[0], max_items[1], max_items[2]);
+
+	clGetDeviceInfo(device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("  CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE = %llu\n", (unsigned long long)buf_ulong);
+	clGetDeviceInfo(device, CL_DEVICE_MAX_CONSTANT_ARGS, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("  CL_DEVICE_MAX_CONSTANT_ARGS = %llu\n", (unsigned long long)buf_ulong);
+	
+	clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("  CL_DEVICE_GLOBAL_MEM_CACHE_SIZE = %llu\n", (unsigned long long)buf_ulong);
+	clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
+	printf("  CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE = %llu\n", (unsigned long long)buf_ulong);
+}
+
 const char *getErrorString(cl_int error)
 {
 switch(error){
