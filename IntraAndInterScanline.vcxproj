@@ -168,6 +168,7 @@
     <ClInclude Include="cwz_cl_data_type.h" />
     <ClInclude Include="common_func.h" />
     <ClInclude Include="cwz_edge_detector.h" />
+    <ClInclude Include="cwz_img_proc.h" />
     <ClInclude Include="cwz_integral_img.h" />
     <ClInclude Include="cwz_tree_filter_loop_ctrl.h" />
   </ItemGroup>

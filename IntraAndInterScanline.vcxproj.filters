@@ -52,5 +52,8 @@
     <ClInclude Include="cwz_edge_detector.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="cwz_img_proc.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

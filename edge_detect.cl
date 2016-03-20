@@ -1,5 +1,5 @@
 //Result type也被定義在cwz_edge_detector要同時改
-#define EDGE_DETECT_RESULT_TYPE float
+#define EDGE_DETECT_RESULT_TYPE uchar
 
 /*
 //執行此kernel的prerequisite
@@ -26,6 +26,7 @@ edgeDetect_1d(...)
 #define _1D_K1_Right_len 0
 #define _1D_K2_Right_len 1
 #define _1D_K3_Right_len 3
+#define _1DThreshold 3
 /*
 const float _1DK1[2] = {-1, 1};
 const float _1DK2[4] = {-1.41421, -1.41421, 1.41421, 1.41421};
@@ -43,16 +44,24 @@ typedef struct EdgeKernelInfo_1D{
 } EdgeKernelInfo_1D;
 // end of 1D kernel definition
 
+bool isEdge(float cost, __local uchar *block){
+	if(cost > _1DThreshold)
+		return true;
+	else
+		return false;
+}
+
 __kernel void edgeDetect_1d(__global EDGE_DETECT_RESULT_TYPE *result, 
 							__global uchar *img, 
-							__constant struct EdgeKernelInfo_1D *info,
+							__global const EdgeKernelInfo_1D *info,
+						  //__constant EdgeKernelInfo_1D *info, ---->會讀到錯誤的值, 原因找很久仍不明
 							__local uchar *block){
 	// read the matrix tile into shared memory
 	const unsigned int idx  = get_global_id(0);
 	const unsigned int xidx = idx % info->width;
-	const unsigned int yidx = idx / info->width;
+	//const unsigned int yidx = idx / info->width;
 	unsigned int local_idx = get_local_id(0);
-
+	float cost;
 	if( xidx < info->half_width )
 	{//group 1
 		
@@ -63,6 +72,19 @@ __kernel void edgeDetect_1d(__global EDGE_DETECT_RESULT_TYPE *result,
 			for(int i=1 ; i <= _1D_K3_Right_len ; i++){
 				block[local_idx+i] = img[idx+i];
 			}
+		}
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		//第一層
+		if(local_idx >= _1D_K1_Left_len){
+
+			cost = fabs(block[local_idx - 1] * info->k1[0] + block[local_idx] * info->k1[1]); 
+			if( isEdge(cost, block) ){
+				//result[idx] = round(cost);
+				result[idx] = 255;
+			}
+			
 		}
 	}else
 	{//group 2
@@ -75,37 +97,14 @@ __kernel void edgeDetect_1d(__global EDGE_DETECT_RESULT_TYPE *result,
 		}
 
 		block[shift_local_idx] = img[idx];
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		//第一層
+		cost = fabs(block[shift_local_idx - 1] * info->k1[0] + block[shift_local_idx] * info->k1[1]); 
+		if( isEdge(cost, block) ){
+			//result[idx] = round(cost);
+			result[idx] = 255;
+		}
 	}
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	int group_id = (xidx - local_idx) / info->half_width;
-
-	/*if( group_id == 0 )
-	{
-		result[idx] = 0;
-	}else if( group_id == 1 ) {
-		result[idx] = 128;
-	}else{
-		result[idx] = 255;
-	}*/
-	result[0] = info->width;
-	result[1] = info->half_width;
-	result[2] = info->height;
-	result[3] = info->xoffset;
-	result[4] = info->k1[0];
-	result[5] = info->k1[1];
-	result[6] = info->k2[0];
-	result[7] = info->k2[1];
-	result[8] = info->k2[2];
-	result[9] = info->k2[3];
-
-	result[10] = info->k3[0];
-	result[11] = info->k3[1];
-	result[12] = info->k3[2];
-	result[13] = info->k3[3];
-	result[14] = info->k3[4];
-	result[15] = info->k3[5];
-	result[16] = info->k3[6];
-	result[17] = info->k3[7];
 }

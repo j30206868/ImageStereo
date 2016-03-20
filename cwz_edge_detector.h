@@ -10,7 +10,7 @@
 #include <CL/cl.h>
 #endif
 
-#define EDGE_DETECT_RESULT_TYPE float
+#define EDGE_DETECT_RESULT_TYPE uchar
 #define EDGE_DETECT_CL_FILENAME "edge_detect.cl"
 //for 1D kernel setting
 #define EDGE_DETECT_1D_EXIST true
@@ -78,7 +78,7 @@ int cwz_edge_detector::edgeDetect(uchar *gray_img, EDGE_DETECT_RESULT_TYPE *resu
 
 	int node_c = w * h;
 	cl_mem reuslt   = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(EDGE_DETECT_RESULT_TYPE) * node_c, NULL, NULL);
-	cl_mem img_mem  = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(uchar) * node_c, gray_img, NULL);
+	cl_mem img_mem  = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(uchar) * node_c, gray_img, NULL);
 #ifdef EDGE_DETECT_1D_EXIST
 	cl_mem ker_info = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(EdgeKernelInfo_1D), (&info), NULL);
 	//cl_mem ker_info = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(EdgeKernelInfo_1D), &info, NULL);
@@ -100,13 +100,6 @@ int cwz_edge_detector::edgeDetect(uchar *gray_img, EDGE_DETECT_RESULT_TYPE *resu
 	}else{
 		std::cerr << "cwz_edge_detector::edgeDetect: Can't run kernel or read back data\n";	
 	}
-
-	printf("function 輸入參數__constant struct EdgeKernelInfo_1D *info, 則kernel會讀到錯誤的值(address跑掉)查不出原因\n");
-	printf("改__global就可以, 是因為struct不能宣告成constant?\n");
-	for(int i=0 ; i<18 ; i++){
-		printf("[%f]\n", result_img[i]);
-	}
-	system("PAUSE");
 
 	clReleaseMemObject(reuslt);
 	clReleaseMemObject(img_mem);

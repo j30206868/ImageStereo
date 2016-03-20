@@ -22,6 +22,7 @@
 #include "cwz_tree_filter_loop_ctrl.h"
 #include "cwz_integral_img.h"
 #include "cwz_edge_detector.h"
+#include "cwz_img_proc.h"
 
 // for change window name
 #define _AFXDLL
@@ -87,9 +88,6 @@ int main()
 	sub_info.node_c  = sub_h * sub_w;
 	sub_info.printf_match_info("縮小影像資訊");
 
-	cwz_edge_detector edgeDetector;
-	edgeDetector.init(context, device, sub_w, sub_h);
-
 	match_info info;
 	info.img_height = left_b.rows; 
 	info.img_width = left_b.cols; 
@@ -113,6 +111,22 @@ int main()
 	uchar *left_grad_ch = new uchar[sub_info.node_c];
 	uchar *right_grad_ch = new uchar[sub_info.node_c];
 	//
+
+	//guided filtering
+	guided_img<float, float> *gfilter;
+	float *normalized_left_gray_img;
+	float *normalized_right_gray_img;
+	bool doGuildFiltering = DoGuidedFiltering;
+	gfilter = new guided_img<float, float>();
+	gfilter->init(NULL, NULL, sub_info.img_width, sub_info.img_height);
+	normalized_left_gray_img  = new float[sub_info.node_c];
+	normalized_right_gray_img = new float[sub_info.node_c];
+	//
+
+	//texture analysis
+	cwz_texture_analyzer t_analyzer;
+	t_analyzer.init(sub_info.img_width, sub_info.img_height);
+	//
 	
 	uchar *left_dmap;
 	uchar *right_dmap;
@@ -132,11 +146,24 @@ int main()
 		cvtColor( left, left_g, CV_BGR2GRAY );
 		cvtColor( right, right_g, CV_BGR2GRAY );
 
-		EDGE_DETECT_RESULT_TYPE *left_result  = new EDGE_DETECT_RESULT_TYPE[sub_info.node_c];
-		EDGE_DETECT_RESULT_TYPE *right_result = new EDGE_DETECT_RESULT_TYPE[sub_info.node_c];
+		if(doGuildFiltering){
+			apply_gray_guided_img_filtering<float, float, float>
+				(left_g.data, sub_info.img_height, sub_info.img_width, normalized_left_gray_img, *gfilter);
+			apply_gray_guided_img_filtering<float, float, float>
+				(right_g.data, sub_info.img_height, sub_info.img_width, normalized_right_gray_img, *gfilter);
+		}
 
-		edgeDetector.edgeDetect(left_g.data, left_result);
-		edgeDetector.edgeDetect(right_g.data, right_result);
+		cwz_timer::start();
+		uchar *left_exp = t_analyzer.expandImgBorder(left_g.data);
+		uchar *right_exp = t_analyzer.expandImgBorder(right_g.data);
+		cwz_timer::time_display("expandImgBorder left and right");
+
+		cwz_edge_detector edgeDetector;
+		edgeDetector.init(context, device, sub_w, sub_h);
+		cwz_timer::start();
+		edgeDetector.edgeDetect(left_g.data, left_edge.data);
+		edgeDetector.edgeDetect(right_g.data, right_edge.data);
+		cwz_timer::time_display("edgeDetect left and right");
 
 		show_cv_img("left_edge", left_edge.data, left_edge.rows, left_edge.cols, 1, false);
 		show_cv_img("right_edge", right_edge.data, right_edge.rows, right_edge.cols, 1, false);
