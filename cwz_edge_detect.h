@@ -4,6 +4,7 @@
 #include "common_func.h"
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_integral_img.h"
+#include "cwz_img_proc.h"
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
@@ -67,9 +68,33 @@ public:
 	void setDeviceInfo();
 };
 
-class cwz_local_th{
-
+class cwz_lth_proc{
+private:
+	int max_kw, max_kh;
+	uchar *exp_img;
+	uchar *exp_result;
+	int *exp_int_img;
+	int w, h;
+	int exp_w, exp_h;
+	//
+	int ver_kw;
+	int ver_kh;
+	int hor_kw;
+	int hor_kh;
+	int sqr_kw;
+	int sqr_kh;
+	int th;
+public:
+	uchar *hor_result;
+	uchar *ver_result;
+	uchar *sqr_result;
+	void init(int _w, int _h);
+	void doLocalTh(uchar *img);
+	void showResult();
+	void releaseRes();
 };
+
+void cwz_local_threshold(uchar *img, int *exp_int_img, uchar *result, int w, int h, int kw, int kh, int th);
 
 
 #endif //CWZ_EDGE_DETECTOR_H

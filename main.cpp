@@ -127,6 +127,11 @@ int main()
 	uchar *left_exp  = t_analyzer.createEmptyExpandImg();
 	uchar *right_exp = t_analyzer.createEmptyExpandImg();
 	//
+	cwz_lth_proc left_th_proc;
+	left_th_proc.init(sub_info.img_width, sub_info.img_height);
+	cwz_lth_proc right_th_proc;
+	right_th_proc.init(sub_info.img_width, sub_info.img_height);
+	//
 	
 	bool useExpandImg = true;
 	cwz_edge_detector edgeDetector;
@@ -142,8 +147,8 @@ int main()
 	int method = default_method;
 	char ch;
 	do{
-		show_cv_img("左影像", left.data, left.rows, left.cols, 3, false);
-		show_cv_img("右影像", right.data, right.rows, right.cols, 3, false);
+		//show_cv_img("左影像", left.data, left.rows, left.cols, 3, false);
+		//show_cv_img("右影像", right.data, right.rows, right.cols, 3, false);
 
 		cv::Mat edgeMap(sub_h, sub_w, CV_8UC1);
 		
@@ -156,6 +161,8 @@ int main()
 			apply_gray_guided_img_filtering<float, float, float>
 				(right_g.data, sub_info.img_height, sub_info.img_width, normalized_right_gray_img, *gfilter);
 		}
+		show_cv_img("左影像(gray)", left_g.data, left.rows, left.cols, 1, false);
+		show_cv_img("右影像(gray)", right_g.data, right.rows, right.cols, 1, false);
 
 		cwz_timer::start();
 		t_analyzer.expandImgBorder(left_g.data , left_exp);
@@ -168,6 +175,13 @@ int main()
 		edgeDetector.edgeDetect(left_exp, left_edge.data);
 		edgeDetector.edgeDetect(right_exp, right_edge.data);
 		cwz_timer::time_display("edgeDetect left and right");
+
+		cwz_timer::start();
+		left_th_proc.doLocalTh (left_g.data);
+		right_th_proc.doLocalTh(right_g.data);
+		cwz_timer::time_display("Local Threshold 3diff kernel for left and right");
+		//left_th_proc.showResult();
+		right_th_proc.showResult();
 
 		show_cv_img("left_edge", left_edge.data, left_edge.rows, left_edge.cols, 1, false);
 		show_cv_img("right_edge", right_edge.data, right_edge.rows, right_edge.cols, 1, false);

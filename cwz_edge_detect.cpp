@@ -1,4 +1,71 @@
 #include "cwz_edge_detect.h"
+void cwz_lth_proc::init(int _w, int _h){
+	this->w = _w;
+	this->h = _h;
+
+	this->max_kw = 5;
+	this->max_kh = 5;
+	this->exp_w = w + max_kw + max_kw;
+	this->exp_h = h + max_kh + max_kh;
+	int exp_node = exp_w * exp_h;
+	this->exp_img = new uchar[exp_node];
+	this->exp_int_img = new int[exp_node];
+	this->exp_result = new uchar[exp_node];
+
+	//alloc result arr
+	int node = w*h;
+	this->hor_result = new uchar[node];
+	this->ver_result = new uchar[node];
+	this->sqr_result = new uchar[node];
+
+	//set diff kernel
+	this->ver_kw = 1;
+	this->ver_kh = max_kh;
+	this->hor_kw = max_kw;
+	this->hor_kh = 1;
+	this->sqr_kw = max_kw;
+	this->sqr_kh = max_kh;
+	this->th = 2;
+}
+void cwz_lth_proc::doLocalTh(uchar *img){
+	expandGrayImgBorder(img, exp_img, w, h, max_kw, max_kh);
+	buildIntegralImg<uchar, int>(exp_img, exp_int_img, exp_w, exp_h);
+	//hor
+	cwz_local_threshold(exp_img, exp_int_img, exp_result, exp_w, exp_h, ver_kw, ver_kh, th);
+	getGrayImgFromExpandedImg(exp_result, hor_result, w, h, max_kw, max_kh);
+	//ver
+	cwz_local_threshold(exp_img, exp_int_img, exp_result, exp_w, exp_h, hor_kw, hor_kh, th);
+	getGrayImgFromExpandedImg(exp_result, ver_result, w, h, max_kw, max_kh);
+	//sqr
+	cwz_local_threshold(exp_img, exp_int_img, exp_result, exp_w, exp_h, sqr_kw, sqr_kh, th);
+	getGrayImgFromExpandedImg(exp_result, sqr_result, w, h, max_kw, max_kh);
+}
+
+void cwz_lth_proc::showResult(){
+	//show
+	show_cv_img("hor_result", hor_result, h, w, 1, false);
+	show_cv_img("ver_result", ver_result, h, w, 1, false);
+	show_cv_img("sqr_result", sqr_result, h, w, 1, false);
+}
+void cwz_lth_proc::releaseRes(){
+	delete[] exp_img;
+	delete[] exp_result;
+	delete[] exp_int_img;
+}
+
+void cwz_local_threshold(uchar *img, int *int_img, uchar *result, int w, int h, int kw, int kh, int th)
+{
+	memset(result, 0, w*h*sizeof(uchar));//將結果先歸0
+	double n = (kh+kh+1) * (kw+kw+1);
+	for(int y=kh ; y<h-kh ; y++)
+	for(int x=kw ; x<w-kw ; x++)
+	{
+		int idx = get_1d_idx(x, y, w);
+		double mean = getArea<int>(int_img, x-kw, y-kh, x+kw, y+kh, w, h) / n;
+		if( abs(mean - img[idx]) >= th )
+			result[idx] = 255;
+	}
+}
 
 void showEdgeKernelInfo_1D(EdgeKernelInfo_1D &info){
 	printf("info.width      :%5d\n", info.width);

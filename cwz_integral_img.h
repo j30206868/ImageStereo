@@ -4,6 +4,8 @@
 #include <iostream>
 #include <math.h>
 
+#include "common_func.h"
+
 void guild_filter_example(const char *LeftIMGName, int max_intensity);
 
 inline int get_1d_idx(int x, int y, int w){return y * w + x;}
@@ -48,8 +50,8 @@ template <class I, class O> inline void normal_to_gray_img(I *n_arr, O *arr, int
 //#define GUI_KERNEL_HEIGHT 9
 //#define GUI_EPSILON 0.0001 
 //
-#define GUI_KERNEL_WIDTH  1
-#define GUI_KERNEL_HEIGHT 6
+#define GUI_KERNEL_WIDTH  2
+#define GUI_KERNEL_HEIGHT 2
 #define GUI_EPSILON 0.01 
 
 //T  -> guided imageªºtype
@@ -96,6 +98,6 @@ public:
 
 template <class N, class I, class O> void apply_gray_guided_img_filtering(uchar *img, int h, int w, N *nor_img, guided_img<I, O> gfilter);
 
-#include "cwz_integral_img.cpp"
+#include "cwz_integral_img.inl"
 
 #endif

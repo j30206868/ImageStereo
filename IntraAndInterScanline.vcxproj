@@ -155,7 +155,9 @@
     <ClCompile Include="cwz_cl_cpp_functions.cpp" />
     <ClCompile Include="cwz_cl_data_type.cpp" />
     <ClCompile Include="cwz_edge_detect.cpp" />
-    <ClCompile Include="cwz_integral_img.cpp">
+    <ClCompile Include="cwz_img_proc.cpp" />
+    <ClCompile Include="cwz_integral_img.cpp" />
+    <ClCompile Include="cwz_integral_img.inl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
