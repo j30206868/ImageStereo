@@ -19,10 +19,10 @@ template<class T> inline T getArea(T *acu_img, int x1, int y1, int x2, int y2, i
 		return acu_img[get_1d_idx(x2, y2, w)];
 }
 
-template<class A, class B, class O> inline void array_add(A *array_a, B *array_b, O *array_out, int len) {for(int i=0; i<len ; i++){ array_out[i] = array_a[i] + array_b[i]; }}
-template<class A, class B, class O> inline void array_sub(A *array_a, B *array_b, O *array_out, int len) {for(int i=0; i<len ; i++){ array_out[i] = array_a[i] - array_b[i]; }}
+template<class A, class B, class O> inline void array_add (A *array_a, B *array_b, O *array_out, int len){for(int i=0; i<len ; i++){ array_out[i] = array_a[i] + array_b[i]; }}
+template<class A, class B, class O> inline void array_sub (A *array_a, B *array_b, O *array_out, int len){for(int i=0; i<len ; i++){ array_out[i] = array_a[i] - array_b[i]; }}
 template<class A, class B, class O> inline void array_mult(A *array_a, B *array_b, O *array_out, int len){for(int i=0; i<len ; i++){ array_out[i] = array_a[i] * array_b[i]; }}
-template<class A, class B, class O> inline void array_div(A *array_a, B *array_b, O *array_out, int len) {for(int i=0; i<len ; i++){ array_out[i] = array_a[i] / (O)array_b[i]; }}
+template<class A, class B, class O> inline void array_div (A *array_a, B *array_b, O *array_out, int len){for(int i=0; i<len ; i++){ array_out[i] = array_a[i] / (O)array_b[i]; }}
 
 template<class T, class O> void buildIntegralImg(T *img, O *acu_img, int w, int h);
 template<class A, class B, class O> void buildAtimesBIntegralImg(A *img_a, B *img_b, O *acu_img, int w, int h);
@@ -48,8 +48,8 @@ template <class I, class O> inline void normal_to_gray_img(I *n_arr, O *arr, int
 //#define GUI_KERNEL_HEIGHT 9
 //#define GUI_EPSILON 0.0001 
 //
-#define GUI_KERNEL_WIDTH  3
-#define GUI_KERNEL_HEIGHT 3
+#define GUI_KERNEL_WIDTH  1
+#define GUI_KERNEL_HEIGHT 6
 #define GUI_EPSILON 0.01 
 
 //T  -> guided imageªºtype

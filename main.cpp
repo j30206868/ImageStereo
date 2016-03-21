@@ -21,7 +21,7 @@
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_tree_filter_loop_ctrl.h"
 #include "cwz_integral_img.h"
-#include "cwz_edge_detector.h"
+#include "cwz_edge_detect.h"
 #include "cwz_img_proc.h"
 
 // for change window name
@@ -104,8 +104,6 @@ int main()
 	char* window_name = "Edge Map";
 	cv::Mat left_g(sub_info.img_height, sub_info.img_width, CV_8UC1);
 	cv::Mat right_g(sub_info.img_height, sub_info.img_width, CV_8UC1);
-	cv::Mat left_edge(sub_info.img_height, sub_info.img_width, CV_8UC1);
-	cv::Mat right_edge(sub_info.img_height, sub_info.img_width, CV_8UC1);
 	//
 	//for gradient
 	uchar *left_grad_ch = new uchar[sub_info.node_c];
@@ -126,8 +124,14 @@ int main()
 	//texture analysis
 	cwz_texture_analyzer t_analyzer;
 	t_analyzer.init(sub_info.img_width, sub_info.img_height);
+	uchar *left_exp  = t_analyzer.createEmptyExpandImg();
+	uchar *right_exp = t_analyzer.createEmptyExpandImg();
 	//
 	
+	bool useExpandImg = true;
+	cwz_edge_detector edgeDetector;
+	edgeDetector.init(context, device, t_analyzer.exp_w, t_analyzer.exp_h, useExpandImg, t_analyzer.expand_kw, t_analyzer.expand_kh);
+
 	uchar *left_dmap;
 	uchar *right_dmap;
 	uchar *refined_dmap;
@@ -154,15 +158,15 @@ int main()
 		}
 
 		cwz_timer::start();
-		uchar *left_exp = t_analyzer.expandImgBorder(left_g.data);
-		uchar *right_exp = t_analyzer.expandImgBorder(right_g.data);
+		t_analyzer.expandImgBorder(left_g.data , left_exp);
+		t_analyzer.expandImgBorder(right_g.data, right_exp);
 		cwz_timer::time_display("expandImgBorder left and right");
 
-		cwz_edge_detector edgeDetector;
-		edgeDetector.init(context, device, sub_w, sub_h);
+		cv::Mat left_edge(t_analyzer.exp_h, t_analyzer.exp_w, CV_8UC1);
+		cv::Mat right_edge(t_analyzer.exp_h, t_analyzer.exp_w, CV_8UC1);
 		cwz_timer::start();
-		edgeDetector.edgeDetect(left_g.data, left_edge.data);
-		edgeDetector.edgeDetect(right_g.data, right_edge.data);
+		edgeDetector.edgeDetect(left_exp, left_edge.data);
+		edgeDetector.edgeDetect(right_exp, right_edge.data);
 		cwz_timer::time_display("edgeDetect left and right");
 
 		show_cv_img("left_edge", left_edge.data, left_edge.rows, left_edge.cols, 1, false);

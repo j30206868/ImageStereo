@@ -1,36 +1,5 @@
-#ifndef CWZ_EDGE_DETECTOR_H
-#define CWZ_EDGE_DETECTOR_H
+#include "cwz_edge_detect.h"
 
-#include "common_func.h"
-#include "cwz_cl_cpp_functions.h"
-
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#else
-#include <CL/cl.h>
-#endif
-
-#define EDGE_DETECT_RESULT_TYPE uchar
-#define EDGE_DETECT_CL_FILENAME "edge_detect.cl"
-//for 1D kernel setting
-#define EDGE_DETECT_1D_EXIST true
-#define EDGE_DETECT_1D_KERNEL_ID 1
-#define EDGE_DETECT_1D_KERNEL_NAME "edgeDetect_1d"
-//
-
-//used to control which kernel is going to be used
-#define EDGE_DETECT_DEFAULT_KERNEL_ID EDGE_DETECT_1D_KERNEL_ID
-//
-
-typedef struct{
-	cl_int width;
-	cl_int half_width;
-	cl_int height;
-	cl_int xoffset;
-	cl_float k1[2];
-	cl_float k2[4];
-	cl_float k3[8];
-} EdgeKernelInfo_1D;
 void showEdgeKernelInfo_1D(EdgeKernelInfo_1D &info){
 	printf("info.width      :%5d\n", info.width);
 	printf("info.half_width :%5d\n", info.half_width);
@@ -38,42 +7,7 @@ void showEdgeKernelInfo_1D(EdgeKernelInfo_1D &info){
 	printf("info.xoffset    :%5d\n", info.xoffset);
 }
 
-class cwz_edge_detector{
-private:
-	uchar *left_gray;
-	uchar *right_gray;
-	uchar *left_edge;
-	uchar *right_edge;
-	
-	cl_program program;
-	cl_context context; 
-	cl_device_id device;
-	cl_kernel edge_detect_kernel;
-	//
-	size_t dim_max_items[3];
-	size_t max_group_size;
-	cl_ulong max_local_mem;
-	//
-	int w, h;
-	//
-#ifdef EDGE_DETECT_1D_EXIST
-	EdgeKernelInfo_1D info;
-#endif
-
-	int exe_kernel_id;
-public:
-	cl_int err;
-	
-	void init(cl_context &context, cl_device_id &device, int _w, int _h);
-	void releaseRes();
-	int edgeDetect(uchar *gray_img, EDGE_DETECT_RESULT_TYPE *result_img);
-	void setDeviceInfo();
-};
-
 int cwz_edge_detector::edgeDetect(uchar *gray_img, EDGE_DETECT_RESULT_TYPE *result_img){
-	//¼È®É©w¸q
-	int _1D_K3_Left_len = 4;
-
 	cl_command_queue queue = clCreateCommandQueue(context, device, 0, 0);
 
 	int node_c = w * h;
@@ -88,8 +22,11 @@ int cwz_edge_detector::edgeDetect(uchar *gray_img, EDGE_DETECT_RESULT_TYPE *resu
 	clSetKernelArg(edge_detect_kernel, 0, sizeof(cl_mem), &reuslt);
 	clSetKernelArg(edge_detect_kernel, 1, sizeof(cl_mem), &img_mem);
 	clSetKernelArg(edge_detect_kernel, 2, sizeof(cl_mem), &ker_info);
-	clSetKernelArg(edge_detect_kernel, 3, (info.half_width + _1D_K3_Left_len) * sizeof(uchar), 0 );
-
+	if(this->useExpandImg){
+		clSetKernelArg(edge_detect_kernel, 3, (info.half_width + (this->expand_kw*2)) * sizeof(uchar), 0 );
+	}else{
+		clSetKernelArg(edge_detect_kernel, 3, (info.half_width + _1D_K3_Left_len) * sizeof(uchar), 0 );
+	}
 	size_t global_work_size = node_c;
 	size_t local_work_size = info.half_width;
 	err = clEnqueueNDRangeKernel(queue, edge_detect_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
@@ -107,7 +44,13 @@ int cwz_edge_detector::edgeDetect(uchar *gray_img, EDGE_DETECT_RESULT_TYPE *resu
 	clReleaseCommandQueue(queue);
 	return true;
 }
-void cwz_edge_detector::init(cl_context &_context, cl_device_id &_device, int _w, int _h){
+void cwz_edge_detector::init(cl_context &_context, cl_device_id &_device, int _w, int _h, bool _useExpandImg, int _exp_w, int _exp_h){
+	this->expand_kw = _exp_w;
+	this->expand_kh = _exp_h;
+	this->init(_context, _device, _w, _h, _useExpandImg);
+}
+void cwz_edge_detector::init(cl_context &_context, cl_device_id &_device, int _w, int _h, bool _useExpandImg){
+	this->useExpandImg = _useExpandImg;
 	exe_kernel_id = EDGE_DETECT_DEFAULT_KERNEL_ID;
 
 	program = load_program(_context, EDGE_DETECT_CL_FILENAME);
@@ -145,8 +88,10 @@ void cwz_edge_detector::init(cl_context &_context, cl_device_id &_device, int _w
 
 		if(this->w % 2 != 0) printf("cwz_edge_detector::Error image width should be multiple of 2.\n");
 		if(this->dim_max_items[0] * 2 < this->w) printf("cwz_edge_detector::Error image width is too large.\n");
-
-		edge_detect_kernel = clCreateKernel(program, EDGE_DETECT_1D_KERNEL_NAME, 0);
+		if(this->useExpandImg)
+			edge_detect_kernel = clCreateKernel(program, EDGE_DETECT_1D_EXPAND_KERNEL_NAME, 0);
+		else
+			edge_detect_kernel = clCreateKernel(program, EDGE_DETECT_1D_KERNEL_NAME, 0);
 		if(edge_detect_kernel == 0) { std::cerr << "Can't load " << EDGE_DETECT_1D_KERNEL_NAME << " kernel\n"; system("PAUSE"); }
 	}
 }
@@ -162,6 +107,3 @@ void cwz_edge_detector::releaseRes(){
 	delete[] left_edge;
 	delete[] right_edge;
 }
-
-
-#endif //CWZ_EDGE_DETECTOR_H

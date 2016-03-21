@@ -21,8 +21,17 @@
     <ClCompile Include="common_func.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
+    <ClCompile Include="cwz_cl_data_type.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="cwz_edge_detect.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
     <ClCompile Include="cwz_integral_img.cpp">
       <Filter>資源檔</Filter>
+    </ClCompile>
+    <ClCompile Include="cwz_cl_cpp_functions.cpp">
+      <Filter>原始程式檔</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -49,10 +58,13 @@
     <ClInclude Include="cwz_integral_img.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="cwz_edge_detector.h">
+    <ClInclude Include="cwz_img_proc.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="cwz_img_proc.h">
+    <ClInclude Include="cwz_edge_cl_config.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="cwz_edge_detect.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
