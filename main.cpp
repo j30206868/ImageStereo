@@ -17,6 +17,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 
+#include "cwz_config.h"
+
 #include "cwz_cl_data_type.h"
 #include "cwz_cl_cpp_functions.h"
 #include "cwz_mst.h"
@@ -44,8 +46,7 @@ const int CWZ_STATUS_FRAME_BY_FRAME = 1;
 const int CWZ_STATUS_MODIFY_PARAM = 2;
 const int CWZ_STATUS_EXIT = 999;
 
-const int CWZ_METHOD_TREE = 1;
-const int CWZ_MEDTHO_CV_SGNM = 2;
+
 
 void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_num){
 	std::stringstream sstm;
@@ -57,7 +58,7 @@ void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_nu
 	stereo_frame = cv::imread(sstm.str(), CV_LOAD_IMAGE_COLOR);
 }
 
-int processInputKey(int inputkey, int &status, int &frame_count, int &method);//will return shouldbreak or not
+int processInputKey(int inputkey, int &status, int &frame_count);//will return shouldbreak or not
 void apply_opencv_stereoSGNM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap, match_info info);
 void show1dGradient(const char *str, float *gradient_float, uchar *gradient_ch, int h, int w);
 void showEdge(uchar *left_g, uchar *right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size);
@@ -157,6 +158,7 @@ int main()
 	sub_info.max_x_d = sub_w / max_d_to_img_len_pow; 
 	sub_info.max_y_d = sub_h / max_d_to_img_len_pow; 
 	sub_info.node_c  = sub_h * sub_w;
+	sub_info.th = 1;
 	sub_info.printf_match_info("縮小影像資訊");
 
 	match_info info;
@@ -165,6 +167,7 @@ int main()
 	info.max_y_d = info.img_height / max_d_to_img_len_pow; 
 	info.max_x_d = info.img_width  / max_d_to_img_len_pow; 
 	info.node_c = info.img_height * info.img_width;
+	info.th = 1;
 
 	//for edge extraction
 	int edgeThresh = 3;
@@ -204,17 +207,20 @@ int main()
 	cv::Mat diffLm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
 	cv::Mat diffRm = cv::Mat(sub_info.img_height, sub_info.img_width, CV_8UC3);
 	int status = CWZ_STATUS_FRAME_BY_FRAME;
-	int method = default_method;
 	char ch;
 	do{
 		show_cv_img("左影像", left.data, diffLm.rows, diffLm.cols, 3, false);
 		show_cv_img("右影像", right.data, diffRm.rows, diffRm.cols, 3, false);
 
 		cv::Mat refinedDMap(sub_h, sub_w, CV_8UC1);
-		if(method == CWZ_MEDTHO_CV_SGNM)
+		if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::MEDTHO_CV_SGNM)
 			apply_opencv_stereoSGNM(left, right, refinedDMap, sub_info);
-		else if(method == CWZ_METHOD_TREE)
+		else if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE || 
+				cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE_NO_REFINE)
 		{
+			info.th = cwz_loop_ctrl::Match_Cost_Th;
+			sub_info.th = cwz_loop_ctrl::Match_Cost_Th;
+
 			cwz_timer::t_start();
 		
 			cwz_timer::start();
@@ -243,8 +249,14 @@ int main()
 				show_cv_img("right_dmap", right_dmap, sub_info.img_height, sub_info.img_width, 1, false);
 		
 			//dmap_ref.set_left_right_dmap_value(left_dmap, right_dmap);
+			bool doTRefine = doTreeRefinement;
+			if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE_NO_REFINE){
+				doTRefine = false;
+			}else{
+				doTRefine = true;
+			}
 			cwz_timer::start();
-			refined_dmap = dmap_ref.refinement();
+			refined_dmap = dmap_ref.refinement(doTRefine);
 			cwz_timer::time_display("- calc_new_cost_after_left_right_check -");
 
 			uchar *upsampled_dmap;
@@ -356,7 +368,7 @@ int main()
 		}
 
 		// Loop Status Control
-		int prcResult = processInputKey(inputkey, status, frame_count, method);
+		int prcResult = processInputKey(inputkey, status, frame_count);
 		if(prcResult == 0){}//do nothing
 		else if(prcResult == 1) continue;
 		else break;
@@ -427,7 +439,8 @@ void showEdge(uchar *left_g, uchar *right_g, cv::Mat &left_edge, cv::Mat &right_
 	//
 }
 
-int processInputKey(int inputkey, int &status, int &frame_count, int &method){
+
+int processInputKey(int inputkey, int &status, int &frame_count){
 	enum{ result_nothing = 0, result_continue = 1, result_break = 2};
 	do{
 		if(inputkey == 'e'){
@@ -449,10 +462,25 @@ int processInputKey(int inputkey, int &status, int &frame_count, int &method){
 		}else if(inputkey == 'k'){
 			status = CWZ_STATUS_KEEPGOING;
 		}else if(inputkey == 'm'){
-			if(method == CWZ_MEDTHO_CV_SGNM)
-				method = CWZ_METHOD_TREE;
-			else
-				method = CWZ_MEDTHO_CV_SGNM;
+			cwz_loop_ctrl::M_Key_counter++;
+			int mode_v = cwz_loop_ctrl::M_Key_counter % cwz_loop_ctrl::M_Key_total;
+			if(mode_v == cwz_loop_ctrl::MEDTHO_CV_SGNM){
+				cwz_loop_ctrl::Mode = cwz_loop_ctrl::MEDTHO_CV_SGNM;
+			}else if(mode_v == cwz_loop_ctrl::METHOD_TREE){
+				cwz_loop_ctrl::Mode = cwz_loop_ctrl::METHOD_TREE;
+			}else if(mode_v == cwz_loop_ctrl::METHOD_TREE_NO_REFINE){
+				cwz_loop_ctrl::Mode = cwz_loop_ctrl::METHOD_TREE_NO_REFINE;
+			}
+			frame_count--;
+			break;
+		}else if(inputkey == 't'){
+			cwz_loop_ctrl::Match_Cost_Th = abs(cwz_loop_ctrl::Match_Cost_Th - cwz_loop_ctrl::Match_Cost_Step);
+			printf("======= cwz_loop_ctrl::Match_Cost_Th: %.2f ======= \n", cwz_loop_ctrl::Match_Cost_Th);
+			frame_count--;
+			break;
+		}else if(inputkey == 'T'){
+			cwz_loop_ctrl::Match_Cost_Th += cwz_loop_ctrl::Match_Cost_Step;
+			printf("======= cwz_loop_ctrl::Match_Cost_Th: %.2f ======= \n", cwz_loop_ctrl::Match_Cost_Th);
 			frame_count--;
 			break;
 		}

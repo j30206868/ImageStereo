@@ -14,7 +14,7 @@ typedef struct {
 	int node_c;
 	int img_width;
 	int img_height;
-	uchar *offset;//ªø«×¬°9
+	float th;
 } match_info;
 
 __kernel void matching_cost(__global const int* l_rgb, __global const float *l_gradient, 
@@ -26,6 +26,13 @@ __kernel void matching_cost(__global const int* l_rgb, __global const float *l_g
 
 	const int idx = get_global_id(0);
 	const int x = idx % info->img_width;
+
+	float weight = fabs(l_gradient[idx] - 127.5);
+	if(weight < info->th){
+		weight = weight / info->th;
+	}else{
+		weight = 1;
+	}
 
 	int ridx = idx - x;
 	for(int d = info->max_x_d-1 ; d >= 0  ; d--){
@@ -41,7 +48,7 @@ __kernel void matching_cost(__global const int* l_rgb, __global const float *l_g
 		float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
 
 		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
-		result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		result[(idx * info->max_x_d) + d] = (color_cost*color_ratio + gradient_cost*gradient_ratio) * weight;
 	}
 }
 __kernel void matching_cost_inverse(__global const int* l_rgb, __global const float *l_gradient, 
@@ -53,6 +60,13 @@ __kernel void matching_cost_inverse(__global const int* l_rgb, __global const fl
 
 	const int idx = get_global_id(0);
 	const int x = idx % info->img_width;
+
+	float weight = fabs(l_gradient[idx] - 127.5);
+	if(weight < info->th){
+		weight = weight / info->th;
+	}else{
+		weight = 1;
+	}
 
 	int ridx = idx - x + info->img_width - 1;
 	for(int d = info->max_x_d-1 ; d >= 0  ; d--){
@@ -68,7 +82,7 @@ __kernel void matching_cost_inverse(__global const int* l_rgb, __global const fl
 		float gradient_cost = fmin( fabs(l_gradient[idx] - r_gradient[ridx]), max_gradient_cost);
 
 		//result[d*info->node_c + idx] = color_cost*color_ratio + gradient_cost*gradient_ratio;
-		result[(idx * info->max_x_d) + d] = color_cost*color_ratio + gradient_cost*gradient_ratio;
+		result[(idx * info->max_x_d) + d] = (color_cost*color_ratio + gradient_cost*gradient_ratio) * weight;
 	}
 }
 

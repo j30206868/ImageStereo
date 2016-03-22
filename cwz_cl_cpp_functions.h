@@ -134,6 +134,7 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
     /* Do your stuff here */
 	err = clEnqueueNDRangeKernel(queue, matcher, 1, NULL, &work_size, 0, 0, 0, 0);
 
+	memset(&matching_result[0], 0, sizeof(float) * match_result_len);//Âk0
 	if(err == CL_SUCCESS) {
 		err = clEnqueueReadBuffer(queue, cl_match_result, CL_TRUE, 0, sizeof(float) * match_result_len, &matching_result[0], 0, 0, 0);
 	}

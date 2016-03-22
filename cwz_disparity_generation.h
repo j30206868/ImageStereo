@@ -15,7 +15,6 @@
 #define DMAP_GEN_GIF_TYPE float
 class dmap_gen{
 private:
-	match_info info;
 	int channel;
 
 	cl_context context;
@@ -48,6 +47,8 @@ private:
 	int *left_color_1d_for_3_mst;
 	int *right_color_1d_for_3_mst;
 public:
+	match_info *info;
+
 	uchar *left_gray_1d_arr;
 	uchar *right_gray_1d_arr;
 
@@ -62,7 +63,7 @@ public:
 	cwz_mst mst_R;
 
 	void init(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err, 
-		      cv::Mat left, cv::Mat right, match_info _info);
+		      cv::Mat left, cv::Mat right, match_info &_info);
 	void set_left_right(cv::Mat left, cv::Mat right);
 	void filtering();
 	void compute_cwz_img();
@@ -70,11 +71,11 @@ public:
 	uchar *generate_right_dmap();
 };
 void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_program, cl_int &_err,
-					cv::Mat left, cv::Mat right, match_info _info){
-	info = _info;
-	int h = info.img_height;
-	int w = info.img_width;
-	int node_c = info.node_c;
+					cv::Mat left, cv::Mat right, match_info &_info){
+	info = &_info;
+	int h = info->img_height;
+	int w = info->img_width;
+	int node_c = info->node_c;
 
 	channel = mst_channel;
 
@@ -86,11 +87,11 @@ void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_pr
 	left_color_1d_arr  = c3_mat_to_1d_int_arr(left , h, w);
 	right_color_1d_arr = c3_mat_to_1d_int_arr(right, h, w);
 
-	left_gray_1d_arr = new uchar[info.node_c];
-	right_gray_1d_arr = new uchar[info.node_c];
+	left_gray_1d_arr = new uchar[info->node_c];
+	right_gray_1d_arr = new uchar[info->node_c];
 
-	left_gray_2d_arr  = map_1d_arr_to_2d_arr<uchar>(left_gray_1d_arr , info.img_height, info.img_width);
-	right_gray_2d_arr = map_1d_arr_to_2d_arr<uchar>(right_gray_1d_arr, info.img_height, info.img_width);
+	left_gray_2d_arr  = map_1d_arr_to_2d_arr<uchar>(left_gray_1d_arr , info->img_height, info->img_width);
+	right_gray_2d_arr = map_1d_arr_to_2d_arr<uchar>(right_gray_1d_arr, info->img_height, info->img_width);
 
 	left_1d_gradient  = new float[node_c];
 	right_1d_gradient = new float[node_c];
@@ -98,34 +99,34 @@ void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_pr
 	left_cwz_img  = new cl_match_elem();
 	right_cwz_img = new cl_match_elem();
 
-	left_dmap = new uchar[info.node_c];
-	right_dmap = new uchar[info.node_c];
+	left_dmap = new uchar[info->node_c];
+	right_dmap = new uchar[info->node_c];
 
 	if( channel == 1 ){
-		left_img_arr_for_mst  = new uchar[info.node_c];
-		right_img_arr_for_mst = new uchar[info.node_c];
+		left_img_arr_for_mst  = new uchar[info->node_c];
+		right_img_arr_for_mst = new uchar[info->node_c];
 	}else{
-		left_img_arr_for_mst  = new uchar[info.node_c * 3];
-		right_img_arr_for_mst = new uchar[info.node_c * 3];
+		left_img_arr_for_mst  = new uchar[info->node_c * 3];
+		right_img_arr_for_mst = new uchar[info->node_c * 3];
 
-		left_color_1d_for_3_mst = new int[info.node_c];
-		right_color_1d_for_3_mst = new int[info.node_c];
+		left_color_1d_for_3_mst = new int[info->node_c];
+		right_color_1d_for_3_mst = new int[info->node_c];
 	}
 
 	//for grayscale guided image filtering
 	doGuildFiltering = DoGuidedFiltering;
 	this->gfilter = new guided_img<DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE>();
-	this->gfilter->init(NULL, NULL, info.img_width, info.img_height);
-	this->normalized_left_gray_img  = new DMAP_GEN_GIF_TYPE[info.node_c];
-	this->normalized_right_gray_img = new DMAP_GEN_GIF_TYPE[info.node_c];
+	this->gfilter->init(NULL, NULL, info->img_width, info->img_height);
+	this->normalized_left_gray_img  = new DMAP_GEN_GIF_TYPE[info->node_c];
+	this->normalized_right_gray_img = new DMAP_GEN_GIF_TYPE[info->node_c];
 	//
 
-	mst_L.init(h, w, channel, info.max_x_d, info.max_y_d);
-	mst_R.init(h, w, channel, info.max_x_d, info.max_y_d);
+	mst_L.init(h, w, channel, info->max_x_d, info->max_y_d);
+	mst_R.init(h, w, channel, info->max_x_d, info->max_y_d);
 }
 void dmap_gen::set_left_right(cv::Mat left, cv::Mat right){
-	left_color_1d_arr  = c3_mat_to_1d_int_arr(left , info.img_height, info.img_width);
-	right_color_1d_arr = c3_mat_to_1d_int_arr(right, info.img_height, info.img_width);
+	left_color_1d_arr  = c3_mat_to_1d_int_arr(left , info->img_height, info->img_width);
+	right_color_1d_arr = c3_mat_to_1d_int_arr(right, info->img_height, info->img_width);
 }
 void dmap_gen::filtering(){
 	/************************************************************************
@@ -133,51 +134,51 @@ void dmap_gen::filtering(){
 		深度圖的精確度大大降低
 		apply_cl_color_img_mdf<int>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, img_pre_mdf);
-	right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, info, img_pre_mdf);
+	left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, *info, img_pre_mdf);
+	right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, *info, img_pre_mdf);
 
 	if( channel == 1 ){
-		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, left_img_arr_for_mst, info, mst_pre_mdf)) )
+		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, left_img_arr_for_mst, *info, mst_pre_mdf)) )
 		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); system("PAUSE"); }
 
-		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, right_gray_1d_arr, right_img_arr_for_mst, info, mst_pre_mdf)) )
+		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, right_gray_1d_arr, right_img_arr_for_mst, *info, mst_pre_mdf)) )
 		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); system("PAUSE"); }
 
 	}else{
-		apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, left_color_1d_for_3_mst, info, mst_pre_mdf);
-		int_1d_color_to_uchar_1d_color(left_color_1d_for_3_mst, left_img_arr_for_mst, info.node_c);
+		apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, left_color_1d_for_3_mst, *info, mst_pre_mdf);
+		int_1d_color_to_uchar_1d_color(left_color_1d_for_3_mst, left_img_arr_for_mst, info->node_c);
 
-		apply_cl_color_img_mdf<int>(context, device, program, err,  right_color_1d_arr, right_color_1d_for_3_mst, info, mst_pre_mdf);
-		int_1d_color_to_uchar_1d_color(right_color_1d_for_3_mst, right_img_arr_for_mst, info.node_c);
+		apply_cl_color_img_mdf<int>(context, device, program, err,  right_color_1d_arr, right_color_1d_for_3_mst, *info, mst_pre_mdf);
+		int_1d_color_to_uchar_1d_color(right_color_1d_for_3_mst, right_img_arr_for_mst, info->node_c);
 	}
 }
 void dmap_gen::compute_cwz_img(){
-	left_cwz_img->node_c = info.node_c;
+	left_cwz_img->node_c = info->node_c;
 	left_cwz_img->gradient = left_1d_gradient;
 	left_cwz_img->rgb = left_color_mdf_1d_arr;
 
-	right_cwz_img->node_c = info.node_c;
+	right_cwz_img->node_c = info->node_c;
 	right_cwz_img->gradient = right_1d_gradient;
 	right_cwz_img->rgb = right_color_mdf_1d_arr;
 
-	int_1d_to_gray_arr(left_color_1d_arr , left_gray_1d_arr , info.node_c);
-	int_1d_to_gray_arr(right_color_1d_arr, right_gray_1d_arr, info.node_c);
+	int_1d_to_gray_arr(left_color_1d_arr , left_gray_1d_arr , info->node_c);
+	int_1d_to_gray_arr(right_color_1d_arr, right_gray_1d_arr, info->node_c);
 
 	//guided img filtering before compute gradient
 	if(this->doGuildFiltering){
 		cwz_timer::start();
 		apply_gray_guided_img_filtering<DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE>
-			(left_gray_1d_arr, this->info.img_height, this->info.img_width, this->normalized_left_gray_img, *this->gfilter);
+			(left_gray_1d_arr, this->info->img_height, this->info->img_width, this->normalized_left_gray_img, *this->gfilter);
 		apply_gray_guided_img_filtering<DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE, DMAP_GEN_GIF_TYPE>
-			(right_gray_1d_arr, this->info.img_height, this->info.img_width, this->normalized_right_gray_img, *this->gfilter);
+			(right_gray_1d_arr, this->info->img_height, this->info->img_width, this->normalized_right_gray_img, *this->gfilter);
 		cwz_timer::time_display("Left and Right grayscale guided image filtering");
 	}
 	/************************************************************************
 				用來產生gradient的灰階圖不要做median filtering
 				否則模糊後邊界會失真
 	************************************************************************/
-	compute_gradient(left_cwz_img->gradient , left_gray_2d_arr , info.img_height, info.img_width);
-	compute_gradient(right_cwz_img->gradient, right_gray_2d_arr, info.img_height, info.img_width);
+	compute_gradient(left_cwz_img->gradient , left_gray_2d_arr , info->img_height, info->img_width);
+	compute_gradient(right_cwz_img->gradient, right_gray_2d_arr, info->img_height, info->img_width);
 }
 uchar *dmap_gen::generate_left_dmap(){
 	/************************************************************************
@@ -189,7 +190,7 @@ uchar *dmap_gen::generate_left_dmap(){
 	//mst.profile_mst();
 	mst_L.mst();
 
-	int match_result_len = info.img_height * info.img_width * info.max_x_d;
+	int match_result_len = info->img_height * info->img_width * info->max_x_d;
 	float *matching_result = mst_L.get_agt_result();
 
 	/*******************************************************
@@ -197,7 +198,7 @@ uchar *dmap_gen::generate_left_dmap(){
 	*******************************************************/
 	cwz_timer::start();
 	if( !apply_cl_cost_match(context, device, program, err, 
-							left_cwz_img, right_cwz_img, matching_result, match_result_len, info, false) )
+							left_cwz_img, right_cwz_img, matching_result, match_result_len, *info, false) )
 	{ printf("generate_left_dmap: apply_cl_cost_match failed.\n"); }
 	cwz_timer::time_display("left cost matching");
 
@@ -209,7 +210,7 @@ uchar *dmap_gen::generate_left_dmap(){
 		取得深度圖後可以做median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, left_dmap, info, depth_post_mdf)) )
+	if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, left_dmap, *info, depth_post_mdf)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 	return left_dmap;
 }
@@ -223,7 +224,7 @@ uchar *dmap_gen::generate_right_dmap(){
 	//mst.profile_mst();
 	mst_R.mst();
 
-	int match_result_len = info.img_height * info.img_width * info.max_x_d;
+	int match_result_len = info->img_height * info->img_width * info->max_x_d;
 	float *matching_result = mst_R.get_agt_result();
 
 	/*******************************************************
@@ -231,7 +232,7 @@ uchar *dmap_gen::generate_right_dmap(){
 	*******************************************************/
 	cwz_timer::start();
 	if( !apply_cl_cost_match(context, device, program, err, 
-							right_cwz_img, left_cwz_img, matching_result, match_result_len, info, true) )
+							right_cwz_img, left_cwz_img, matching_result, match_result_len, *info, true) )
 	{ printf("generate_right_dmap: apply_cl_cost_match failed.\n"); }
 	cwz_timer::time_display("right cost matching");
 	mst_R.cost_agt();
@@ -242,7 +243,7 @@ uchar *dmap_gen::generate_right_dmap(){
 		取得深度圖後可以做median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, right_dmap, info, depth_post_mdf)) )
+	if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, right_dmap, *info, depth_post_mdf)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 	return right_dmap;
 }

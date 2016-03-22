@@ -13,9 +13,8 @@
 #include <time.h>
 
 
-#define default_method 1  //tree=1 ; sgbm=2
 #define IntensityLimit 256
-#define doTreeRefinement true
+#define doTreeRefinement false
 #define defaultOcclusionTh 1
 #define setWto1 false
 #define max_d_to_img_len_pow 5
