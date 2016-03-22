@@ -60,7 +60,7 @@ void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_nu
 int processInputKey(int inputkey, int &status, int &frame_count, int &method);//will return shouldbreak or not
 void apply_opencv_stereoSGNM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap, match_info info);
 void show1dGradient(const char *str, float *gradient_float, uchar *gradient_ch, int h, int w);
-void showEdge(cv::Mat &left, cv::Mat &right, cv::Mat &left_g, cv::Mat &right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size);
+void showEdge(uchar *left_g, uchar *right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size);
 
 int main()
 {
@@ -168,7 +168,7 @@ int main()
 
 	//for edge extraction
 	int edgeThresh = 3;
-	int lowThreshold = 5;
+	int lowThreshold = 10;
 	int const max_lowThreshold = 100;
 	int ratio = 2;
 	int kernel_size = 3;
@@ -289,6 +289,12 @@ int main()
 			}
 		}//end of method tree filtering
 		
+		//edge extraction
+		//showEdge(dmap_generator.left_gray_1d_arr, dmap_generator.right_gray_1d_arr, left_edge, right_edge, lowThreshold, ratio, kernel_size);
+		show1dGradient("Left 1D Gradient", dmap_generator.left_cwz_img->gradient, left_grad_ch, sub_info.img_height, sub_info.img_width);
+		show1dGradient("Right 1D Gradient", dmap_generator.right_cwz_img->gradient, right_grad_ch, sub_info.img_height, sub_info.img_width);
+		//
+
 		//顯示深度影像 並在window標題加上frame_count編號
 		std::stringstream sstm;
 		sstm << "深度影像(" << frame_count << ")";
@@ -342,12 +348,6 @@ int main()
 		//show_cv_img("rightdiff", diffRm.data, diffRm.rows, diffRm.cols, 3, false);
 		//show_cv_img("左前後差值圖", diff_gray_left, diffLm.rows, diffLm.cols, 3, false);
 		//show_cv_img("右前後差值圖", diff_gray_right, diffRm.rows, diffRm.cols, 3, false);
-		
-		//edge extraction
-		//showEdge(left, right, left_g, right_g, left_edge, right_edge, lowThreshold, ratio, kernel_size);
-		show1dGradient("Left 1D Gradient", dmap_generator.left_cwz_img->gradient, left_grad_ch, sub_info.img_height, sub_info.img_width);
-		show1dGradient("Right 1D Gradient", dmap_generator.right_cwz_img->gradient, right_grad_ch, sub_info.img_height, sub_info.img_width);
-		//
 
 		//儲存上一張影像
 		for(int i=0 ; i<sub_info.img_height*sub_info.img_width*3 ; i++){
@@ -397,7 +397,7 @@ int main()
 }
 void show1dGradient(const char *str, float *gradient_float, uchar *gradient_ch, int h, int w){
 	double th = 127.5;
-	double step = 2.5;
+	double step = 1.5;
 	printf("show1d gradient threshold boundry +-%1.1f\n", step);
 	uchar upTh  = th + step;
 	uchar btmTh = th - step;
@@ -412,14 +412,12 @@ void show1dGradient(const char *str, float *gradient_float, uchar *gradient_ch, 
 	}
 	show_cv_img(str, gradient_ch, h, w, 1, false);
 }
-void showEdge(cv::Mat &left, cv::Mat &right, cv::Mat &left_g, cv::Mat &right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size){
+void showEdge(uchar *left_g, uchar *right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size){
 	//edge extraction
 	//left_g.data = dmap_generator.left_gray_1d_arr;
 	//right_g.data = dmap_generator.right_gray_1d_arr;
-	cvtColor( left, left_g, CV_BGR2GRAY );
-	cvtColor( right, right_g, CV_BGR2GRAY );
-	blur( left_g, left_edge, cv::Size(5,5) );
-	blur( right_g, right_edge, cv::Size(5,5) );
+	left_edge.data = left_g;
+	right_edge.data = right_g;
 	cwz_timer::start();
 	Canny( left_edge, left_edge, lowThreshold, lowThreshold*ratio, kernel_size );
 	Canny( right_edge, right_edge, lowThreshold, lowThreshold*ratio, kernel_size );

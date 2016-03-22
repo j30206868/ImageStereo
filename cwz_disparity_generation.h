@@ -29,8 +29,6 @@ private:
 	int *left_color_1d_arr;
 	int *right_color_1d_arr;
 
-	uchar *left_gray_1d_arr;
-	uchar *right_gray_1d_arr;
 	uchar **left_gray_2d_arr;
 	uchar **right_gray_2d_arr;
 
@@ -50,6 +48,9 @@ private:
 	int *left_color_1d_for_3_mst;
 	int *right_color_1d_for_3_mst;
 public:
+	uchar *left_gray_1d_arr;
+	uchar *right_gray_1d_arr;
+
 	bool doGuildFiltering;
 	uchar *left_dmap;
 	uchar *right_dmap;
@@ -194,9 +195,11 @@ uchar *dmap_gen::generate_left_dmap(){
 	/*******************************************************
 							Matching cost
 	*******************************************************/
+	cwz_timer::start();
 	if( !apply_cl_cost_match(context, device, program, err, 
 							left_cwz_img, right_cwz_img, matching_result, match_result_len, info, false) )
 	{ printf("generate_left_dmap: apply_cl_cost_match failed.\n"); }
+	cwz_timer::time_display("left cost matching");
 
 	mst_L.cost_agt();
 
@@ -226,10 +229,11 @@ uchar *dmap_gen::generate_right_dmap(){
 	/*******************************************************
 							Matching cost
 	*******************************************************/
+	cwz_timer::start();
 	if( !apply_cl_cost_match(context, device, program, err, 
 							right_cwz_img, left_cwz_img, matching_result, match_result_len, info, true) )
 	{ printf("generate_right_dmap: apply_cl_cost_match failed.\n"); }
-
+	cwz_timer::time_display("right cost matching");
 	mst_R.cost_agt();
 
 	uchar *best_disparity = mst_R.pick_best_dispairty();
