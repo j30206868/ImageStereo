@@ -4,8 +4,6 @@
 #include "common_func.h"
 #include "cwz_disparity_generation.h"
 
-
-
 class cwz_cmd_processor{
 private:
 	std::string commandstr;

@@ -15,6 +15,7 @@ typedef struct {
 	int img_width;
 	int img_height;
 	float th;
+	float least_w;
 } match_info;
 
 __kernel void matching_cost(__global const int* l_rgb, __global const float *l_gradient, 
@@ -33,6 +34,9 @@ __kernel void matching_cost(__global const int* l_rgb, __global const float *l_g
 	}else{
 		weight = 1;
 	}
+
+	if(weight < info->least_w)
+		weight = info->least_w;
 
 	int ridx = idx - x;
 	for(int d = info->max_x_d-1 ; d >= 0  ; d--){
@@ -67,6 +71,9 @@ __kernel void matching_cost_inverse(__global const int* l_rgb, __global const fl
 	}else{
 		weight = 1;
 	}
+
+	if(weight < info->least_w)
+		weight = info->least_w;
 
 	int ridx = idx - x + info->img_width - 1;
 	for(int d = info->max_x_d-1 ; d >= 0  ; d--){

@@ -8,7 +8,7 @@ typedef struct {
 	int img_width;
 	int img_height;
 	float th;
-
+	float least_w;
 	void printf_match_info(const char *str);
 } match_info;
 

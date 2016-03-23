@@ -218,8 +218,10 @@ int main()
 		else if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE || 
 				cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE_NO_REFINE)
 		{
-			info.th = cwz_loop_ctrl::Match_Cost_Th;
-			sub_info.th = cwz_loop_ctrl::Match_Cost_Th;
+			info.th			 = cwz_loop_ctrl::Match_Cost_Th;
+			sub_info.th		 = cwz_loop_ctrl::Match_Cost_Th;
+			info.least_w	 = cwz_loop_ctrl::Match_Cost_Least_W;
+			sub_info.least_w = cwz_loop_ctrl::Match_Cost_Least_W;
 
 			cwz_timer::t_start();
 		
@@ -316,6 +318,8 @@ int main()
 		CWnd *wndP = wnd->GetParent();
 		wndP->SetWindowText((const char *) sstm.str().c_str()); 
 		cv::imshow("深度影像",refinedDMap);
+		printf("======= cwz_loop_ctrl::Match_Cost_Th     : %.2f ======= \n", cwz_loop_ctrl::Match_Cost_Th);
+		printf("======= cwz_loop_ctrl::Match_Cost_Least_W: %.2f ======= \n", cwz_loop_ctrl::Match_Cost_Least_W);
 		char inputkey = cv::waitKey(30);
 
 		//儲存深度影像結果
@@ -449,6 +453,7 @@ int processInputKey(int inputkey, int &status, int &frame_count){
 			status = CWZ_STATUS_FRAME_BY_FRAME;
 		}else if(inputkey == 'p'){
 			status = CWZ_STATUS_MODIFY_PARAM;
+			frame_count--;
 		}else if(inputkey == ','){//懶的+shift所以直接用跟<同格的,
 			if(frame_count != 1)
 				frame_count-=2;
@@ -475,12 +480,18 @@ int processInputKey(int inputkey, int &status, int &frame_count){
 			break;
 		}else if(inputkey == 't'){
 			cwz_loop_ctrl::Match_Cost_Th = abs(cwz_loop_ctrl::Match_Cost_Th - cwz_loop_ctrl::Match_Cost_Step);
-			printf("======= cwz_loop_ctrl::Match_Cost_Th: %.2f ======= \n", cwz_loop_ctrl::Match_Cost_Th);
 			frame_count--;
 			break;
 		}else if(inputkey == 'T'){
 			cwz_loop_ctrl::Match_Cost_Th += cwz_loop_ctrl::Match_Cost_Step;
-			printf("======= cwz_loop_ctrl::Match_Cost_Th: %.2f ======= \n", cwz_loop_ctrl::Match_Cost_Th);
+			frame_count--;
+			break;
+		}else if(inputkey == 'l'){
+			cwz_loop_ctrl::Match_Cost_Least_W = abs(cwz_loop_ctrl::Match_Cost_Least_W - cwz_loop_ctrl::Match_Cost_Least_W_Step);
+			frame_count--;
+			break;
+		}else if(inputkey == 'L'){
+			cwz_loop_ctrl::Match_Cost_Least_W += cwz_loop_ctrl::Match_Cost_Least_W_Step;
 			frame_count--;
 			break;
 		}
@@ -490,14 +501,15 @@ int processInputKey(int inputkey, int &status, int &frame_count){
 			cwz_cmd_processor cmd_proc(&frame_count);
 			cmd_proc.showRule();
 			bool isEnd = cmd_proc.readTreeLoopCommandStr();
+			isEnd = true;
 			if(isEnd){ status = CWZ_STATUS_FRAME_BY_FRAME; }
 		}
 		else if(status == CWZ_STATUS_FRAME_BY_FRAME){	inputkey = cv::waitKey(0);  	}
 	}while(inputkey != -1);
 	if(status == CWZ_STATUS_EXIT){ return result_break; }
-	else if(status == CWZ_STATUS_MODIFY_PARAM){
-		return result_continue;
-	}
+	//else if(status == CWZ_STATUS_MODIFY_PARAM){
+	//	return result_continue;
+	//}
 	return result_nothing;
 }
 

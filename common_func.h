@@ -27,8 +27,8 @@ const bool mst_pre_mdf = true;
 const bool depth_post_mdf = true;
 
 
-#define CWZ_SHOW_LEFT_DMAP false
-#define CWZ_SHOW_RIGHT_DMAP false
+#define CWZ_SHOW_LEFT_DMAP true
+#define CWZ_SHOW_RIGHT_DMAP true
 
 class cwz_timer{
 public:
