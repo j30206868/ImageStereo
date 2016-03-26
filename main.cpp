@@ -147,8 +147,8 @@ int main()
 	int method = default_method;
 	char ch;
 	do{
-		//show_cv_img("左影像", left.data, left.rows, left.cols, 3, false);
-		//show_cv_img("右影像", right.data, right.rows, right.cols, 3, false);
+		show_cv_img("左影像", left.data, left.rows, left.cols, 3, false);
+		show_cv_img("右影像", right.data, right.rows, right.cols, 3, false);
 
 		cv::Mat edgeMap(sub_h, sub_w, CV_8UC1);
 		
@@ -169,22 +169,55 @@ int main()
 		t_analyzer.expandImgBorder(right_g.data, right_exp);
 		cwz_timer::time_display("expandImgBorder left and right");
 
-		cv::Mat left_edge(t_analyzer.exp_h, t_analyzer.exp_w, CV_8UC1);
-		cv::Mat right_edge(t_analyzer.exp_h, t_analyzer.exp_w, CV_8UC1);
+		uchar *left_edge = new uchar[t_analyzer.exp_h * t_analyzer.exp_w];
+		uchar *right_edge = new uchar[t_analyzer.exp_h * t_analyzer.exp_w];
 		cwz_timer::start();
-		edgeDetector.edgeDetect(left_exp, left_edge.data);
-		edgeDetector.edgeDetect(right_exp, right_edge.data);
+		edgeDetector.edgeDetect(left_exp, left_edge);
+		edgeDetector.edgeDetect(right_exp, right_edge);
 		cwz_timer::time_display("edgeDetect left and right");
 
 		cwz_timer::start();
 		left_th_proc.doLocalTh (left_g.data);
 		right_th_proc.doLocalTh(right_g.data);
 		cwz_timer::time_display("Local Threshold 3diff kernel for left and right");
-		//left_th_proc.showResult();
-		right_th_proc.showResult();
+		left_th_proc.showResult();
+		//right_th_proc.showResult();
 
-		show_cv_img("left_edge", left_edge.data, left_edge.rows, left_edge.cols, 1, false);
-		show_cv_img("right_edge", right_edge.data, right_edge.rows, right_edge.cols, 1, false);
+		//show_cv_img("left_edge", left_edge, t_analyzer.exp_h, t_analyzer.exp_w, 1, false);
+		//show_cv_img("right_edge", right_edge, t_analyzer.exp_h, t_analyzer.exp_w, 1, false);
+
+		//看variance
+		/*
+		uchar *left_var_result = new uchar[sub_info.img_width * sub_info.img_height];
+		uchar *right_var_result = new uchar[sub_info.img_width * sub_info.img_height];
+		cwz_local_variance(left_g.data, left_var_result, sub_info.img_width, sub_info.img_height, 5, 5, 10);
+		cwz_local_variance(right_g.data, right_var_result, sub_info.img_width, sub_info.img_height, 5, 5, 10);
+		//cwz_local_th_by_var(left_g.data, left_var_result, sub_info.img_width, sub_info.img_height, 5, 5, 10);
+		//cwz_local_th_by_var(right_g.data, right_var_result, sub_info.img_width, sub_info.img_height, 5, 5, 10);
+		show_cv_img("left variance", left_var_result, sub_info.img_height, sub_info.img_width, 1, false);
+		show_cv_img("right variance", right_var_result, sub_info.img_height, sub_info.img_width, 1, false);
+		*/
+		//
+
+		//結合local threshold的結果
+		/*uchar *left_gra_result = new uchar[sub_info.node_c];
+		uchar *right_gra_result = new uchar[sub_info.node_c];
+		uchar *left_sqr_result = new uchar[sub_info.node_c];
+		uchar *right_sqr_result = new uchar[sub_info.node_c];
+		getGrayImgFromExpandedImg(left_edge , left_gra_result , sub_info.img_width, sub_info.img_height, t_analyzer.expand_kw, t_analyzer.expand_kh);
+		getGrayImgFromExpandedImg(right_edge, right_gra_result, sub_info.img_width, sub_info.img_height, t_analyzer.expand_kw, t_analyzer.expand_kh);
+		for(int i=0 ; i<sub_info.node_c ; i++){
+			left_gra_result[i]  = max(left_gra_result[i] , left_th_proc.hor_result[i]);
+			right_gra_result[i] = max(right_gra_result[i], right_th_proc.hor_result[i]);
+			left_sqr_result[i]  = max(left_gra_result[i] , left_th_proc.sqr_result[i]);
+			right_sqr_result[i] = max(right_gra_result[i], right_th_proc.sqr_result[i]);
+		}
+		show_cv_img("left combine hor_gradient and hor_th" , left_gra_result , sub_info.img_height , sub_info.img_width, 1, false);
+		show_cv_img("right combine hor_gradient and hor_th", right_gra_result, sub_info.img_height, sub_info.img_width, 1, false);
+		show_cv_img("left sqr" , left_sqr_result , sub_info.img_height , sub_info.img_width, 1, false);
+		show_cv_img("right sqr", right_sqr_result, sub_info.img_height, sub_info.img_width, 1, false);
+		*/
+		//
 
 		//顯示深度影像 並在window標題加上frame_count編號
 		std::stringstream sstm;

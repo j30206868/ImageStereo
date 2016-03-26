@@ -1,8 +1,8 @@
 #define CWZ_CL_DEVICE_SIDE
 #include "cwz_edge_cl_config.h"
 #define _1DThreshold_L1 10
-#define _1DThreshold_L2 20
-#define _1DThreshold_L3 40
+#define _1DThreshold_L2 40
+#define _1DThreshold_L3 80
 /*
 const float _1DK1[2] = {-1, 1};
 const float _1DK2[4] = {-1.41421, -1.41421, 1.41421, 1.41421};

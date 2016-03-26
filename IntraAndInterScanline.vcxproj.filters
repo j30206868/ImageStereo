@@ -73,5 +73,8 @@
     <ClInclude Include="cwz_edge_detect.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="cwz_edge_match.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

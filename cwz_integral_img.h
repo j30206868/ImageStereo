@@ -52,7 +52,7 @@ template <class I, class O> inline void normal_to_gray_img(I *n_arr, O *arr, int
 //
 #define GUI_KERNEL_WIDTH  2
 #define GUI_KERNEL_HEIGHT 2
-#define GUI_EPSILON 0.01 
+#define GUI_EPSILON 0.01
 
 //T  -> guided imageªºtype
 //P  -> imageªºtype

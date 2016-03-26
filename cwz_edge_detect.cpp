@@ -19,13 +19,13 @@ void cwz_lth_proc::init(int _w, int _h){
 	this->sqr_result = new uchar[node];
 
 	//set diff kernel
-	this->ver_kw = 1;
+	this->ver_kw = 0;
 	this->ver_kh = max_kh;
 	this->hor_kw = max_kw;
-	this->hor_kh = 1;
+	this->hor_kh = 0;
 	this->sqr_kw = max_kw;
 	this->sqr_kh = max_kh;
-	this->th = 2;
+	this->th = 5;
 }
 void cwz_lth_proc::doLocalTh(uchar *img){
 	expandGrayImgBorder(img, exp_img, w, h, max_kw, max_kh);
@@ -64,6 +64,58 @@ void cwz_local_threshold(uchar *img, int *int_img, uchar *result, int w, int h, 
 		double mean = getArea<int>(int_img, x-kw, y-kh, x+kw, y+kh, w, h) / n;
 		if( abs(mean - img[idx]) >= th )
 			result[idx] = 255;
+	}
+}
+
+void cwz_local_variance(uchar *img, uchar *result, int w, int h, int kw, int kh, int th){
+	int node_c = w*h;
+	int *img_int = new int[node_c];
+	long long *sq_int = new long long[node_c];
+
+	buildIntegralImg<uchar, int>(img, img_int, w, h);
+	buildAtimesBIntegralImg<uchar, uchar, long long>(img, img, sq_int, w, h);
+
+	double n = (kh+kh+1) * (kw+kw+1);
+	for(int y=kh ; y<h-kh ; y++)
+	for(int x=kw ; x<w-kw ; x++)
+	{
+		int idx = get_1d_idx(x, y, w);
+		double mean_sq = getArea<int>(img_int, x-kw, y-kh, x+kw, y+kh, w, h) / n;
+		mean_sq = mean_sq * mean_sq;
+		double sq_mean = getArea<long long>(sq_int, x-kw, y-kh, x+kw, y+kh, w, h) / n; 
+		double var = cvRound(abs(sq_mean - mean_sq));
+		if(var >= 255)
+			result[idx] = 255;
+		else if(var >= 121)
+			result[idx] = (uchar) var;
+		else
+			result[idx] = 0;
+	}
+}
+
+void cwz_local_th_by_var(uchar *img, uchar *result, int w, int h, int kw, int kh, int th){
+	int node_c = w*h;
+	int *img_int = new int[node_c];
+	long long *sq_int = new long long[node_c];
+
+	buildIntegralImg<uchar, int>(img, img_int, w, h);
+	buildAtimesBIntegralImg<uchar, uchar, long long>(img, img, sq_int, w, h);
+
+	double n = (kh+kh+1) * (kw+kw+1);
+	for(int y=kh ; y<h-kh ; y++)
+	for(int x=kw ; x<w-kw ; x++)
+	{
+		int idx = get_1d_idx(x, y, w);
+		double mean = getArea<int>(img_int, x-kw, y-kh, x+kw, y+kh, w, h) / n;
+		double mean_sq = mean * mean;
+		double sq_mean = getArea<long long>(sq_int, x-kw, y-kh, x+kw, y+kh, w, h) / n; 
+		double var = abs(sqrt(sq_mean - mean_sq) / 2);
+		int diff = abs(mean - img[idx]);
+		if(diff > var){
+			result[idx] = 255;
+		}else{
+			result[idx] = 0;
+		}
 	}
 }
 

@@ -96,5 +96,7 @@ public:
 
 void cwz_local_threshold(uchar *img, int *exp_int_img, uchar *result, int w, int h, int kw, int kh, int th);
 
+void cwz_local_variance(uchar *img, uchar *result, int w, int h, int kw, int kh, int th);
+void cwz_local_th_by_var(uchar *img, uchar *result, int w, int h, int kw, int kh, int th);
 
 #endif //CWZ_EDGE_DETECTOR_H
