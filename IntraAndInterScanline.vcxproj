@@ -165,6 +165,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="cwz_edge_match.h(wrong)" />
     <None Include="edge_detect.cl" />
     <None Include="test.cl" />
   </ItemGroup>

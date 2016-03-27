@@ -23,6 +23,7 @@
 #include "cwz_integral_img.h"
 #include "cwz_edge_detect.h"
 #include "cwz_img_proc.h"
+#include "cwz_edge_match.h"
 
 // for change window name
 #define _AFXDLL
@@ -132,6 +133,9 @@ int main()
 	cwz_lth_proc right_th_proc;
 	right_th_proc.init(sub_info.img_width, sub_info.img_height);
 	//
+	cwz_edge_matcher e_matcher;
+	e_matcher.init(&sub_info);
+	//
 	
 	bool useExpandImg = true;
 	cwz_edge_detector edgeDetector;
@@ -180,7 +184,7 @@ int main()
 		left_th_proc.doLocalTh (left_g.data);
 		right_th_proc.doLocalTh(right_g.data);
 		cwz_timer::time_display("Local Threshold 3diff kernel for left and right");
-		left_th_proc.showResult();
+		//left_th_proc.showResult();
 		//right_th_proc.showResult();
 
 		//show_cv_img("left_edge", left_edge, t_analyzer.exp_h, t_analyzer.exp_w, 1, false);
@@ -200,7 +204,7 @@ int main()
 		//
 
 		//結合local threshold的結果
-		/*uchar *left_gra_result = new uchar[sub_info.node_c];
+		uchar *left_gra_result = new uchar[sub_info.node_c];
 		uchar *right_gra_result = new uchar[sub_info.node_c];
 		uchar *left_sqr_result = new uchar[sub_info.node_c];
 		uchar *right_sqr_result = new uchar[sub_info.node_c];
@@ -212,12 +216,17 @@ int main()
 			left_sqr_result[i]  = max(left_gra_result[i] , left_th_proc.sqr_result[i]);
 			right_sqr_result[i] = max(right_gra_result[i], right_th_proc.sqr_result[i]);
 		}
-		show_cv_img("left combine hor_gradient and hor_th" , left_gra_result , sub_info.img_height , sub_info.img_width, 1, false);
-		show_cv_img("right combine hor_gradient and hor_th", right_gra_result, sub_info.img_height, sub_info.img_width, 1, false);
+		//show_cv_img("left combine hor_gradient and hor_th" , left_gra_result , sub_info.img_height , sub_info.img_width, 1, false);
+		//show_cv_img("right combine hor_gradient and hor_th", right_gra_result, sub_info.img_height, sub_info.img_width, 1, false);
 		show_cv_img("left sqr" , left_sqr_result , sub_info.img_height , sub_info.img_width, 1, false);
 		show_cv_img("right sqr", right_sqr_result, sub_info.img_height, sub_info.img_width, 1, false);
-		*/
+		
 		//
+		uchar *edge_dmap = new uchar[sub_info.node_c];
+		memset(edge_dmap, 0 , sub_info.node_c);
+		e_matcher.edgeMatch(left_g.data, right_g.data, left_sqr_result, right_sqr_result, edge_dmap);
+		show_cv_img("edge_dmap", edge_dmap, sub_info.img_height, sub_info.img_width, 1, false);
+
 
 		//顯示深度影像 並在window標題加上frame_count編號
 		std::stringstream sstm;
