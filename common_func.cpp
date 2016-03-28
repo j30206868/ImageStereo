@@ -1,5 +1,6 @@
 #include "common_func.h"
 #include <windows.h>
+#include <iostream>
 
 double  cwz_timer::m_pc_frequency = 0; 
 __int64 cwz_timer::m_counter_start = 0;
@@ -359,4 +360,19 @@ void show_cv_img(std::string fname, int c, bool shouldWait){
 		cvWaitKey(0);
 	else
 		cvWaitKey(10);
+}
+//ÀÉ®×³B²z
+bool cleanFile(std::string fname){
+
+    //clean the file
+    std::ofstream myfile (fname.c_str());
+    myfile << "";
+    myfile.close();
+
+    return true;
+}
+void writeStrToFile(std::string fname, std::string data){
+    std::ofstream myfile (fname.c_str(), std::ios::app);
+    myfile << data <<"\n";
+    myfile.close();
 }

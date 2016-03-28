@@ -188,4 +188,8 @@ bool eqTypes() { return is_same<T, U>::value; }
 void show_cv_img(std::string title, uchar *pixels, int h, int w, int c, bool shouldWait = true);
 void show_cv_img(std::string fname, int c, bool shouldWait = true);
 
+//ÀÉ®×³B²z
+bool cleanFile(std::string fname);
+void writeStrToFile(std::string fname, std::string data);
+
 #endif //CWZ_COMMON_FUNC_H

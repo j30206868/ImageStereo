@@ -53,7 +53,8 @@ void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_nu
 int processInputKey(int inputkey, int &status, int &frame_count, int &method);//will return shouldbreak or not
 void apply_opencv_stereoSGNM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap, match_info info);
 void show1dGradient(const char *str, float *gradient_float, uchar *gradient_ch, int h, int w);
-void showEdge(cv::Mat &left, cv::Mat &right, cv::Mat &left_g, cv::Mat &right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size);
+void showEdge(uchar *left_g, uchar *right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size);
+void enhanceDepthMap(uchar *dmap, match_info sub_info);
 
 int main()
 {
@@ -97,14 +98,16 @@ int main()
 	info.node_c = info.img_height * info.img_width;
 
 	//for edge extraction
-	int edgeThresh = 3;
-	int lowThreshold = 5;
+	int edgeThresh = 5;
+	int lowThreshold = 10;
 	int const max_lowThreshold = 100;
 	int ratio = 2;
 	int kernel_size = 3;
 	char* window_name = "Edge Map";
 	cv::Mat left_g(sub_info.img_height, sub_info.img_width, CV_8UC1);
 	cv::Mat right_g(sub_info.img_height, sub_info.img_width, CV_8UC1);
+	cv::Mat left_cv_edge(sub_info.img_height, sub_info.img_width, CV_8UC1);
+	cv::Mat right_cv_edge(sub_info.img_height, sub_info.img_width, CV_8UC1);
 	//
 	//for gradient
 	uchar *left_grad_ch = new uchar[sub_info.node_c];
@@ -151,8 +154,9 @@ int main()
 	int method = default_method;
 	char ch;
 	do{
-		show_cv_img("左影像", left.data, left.rows, left.cols, 3, false);
-		show_cv_img("右影像", right.data, right.rows, right.cols, 3, false);
+		printf("============== frame_count: %d ==============\n", frame_count);
+		//show_cv_img("左影像", left.data, left.rows, left.cols, 3, false);
+		//show_cv_img("右影像", right.data, right.rows, right.cols, 3, false);
 
 		cv::Mat edgeMap(sub_h, sub_w, CV_8UC1);
 		
@@ -187,8 +191,8 @@ int main()
 		//left_th_proc.showResult();
 		//right_th_proc.showResult();
 
-		//show_cv_img("left_edge", left_edge, t_analyzer.exp_h, t_analyzer.exp_w, 1, false);
-		//show_cv_img("right_edge", right_edge, t_analyzer.exp_h, t_analyzer.exp_w, 1, false);
+		show_cv_img("left_edge", left_edge, t_analyzer.exp_h, t_analyzer.exp_w, 1, false);
+		show_cv_img("right_edge", right_edge, t_analyzer.exp_h, t_analyzer.exp_w, 1, false);
 
 		//看variance
 		/*
@@ -218,13 +222,19 @@ int main()
 		}
 		//show_cv_img("left combine hor_gradient and hor_th" , left_gra_result , sub_info.img_height , sub_info.img_width, 1, false);
 		//show_cv_img("right combine hor_gradient and hor_th", right_gra_result, sub_info.img_height, sub_info.img_width, 1, false);
-		show_cv_img("left sqr" , left_sqr_result , sub_info.img_height , sub_info.img_width, 1, false);
-		show_cv_img("right sqr", right_sqr_result, sub_info.img_height, sub_info.img_width, 1, false);
+		//show_cv_img("left sqr" , left_sqr_result , sub_info.img_height , sub_info.img_width, 1, false);
+		//show_cv_img("right sqr", right_sqr_result, sub_info.img_height, sub_info.img_width, 1, false);
 		
 		//
-		uchar *edge_dmap = new uchar[sub_info.node_c];
+		//showEdge(left_g.data, right_g.data, left_cv_edge, right_cv_edge, lowThreshold, ratio, kernel_size);
+		//
+		printf("sub_info.img_height:%d | sub_info.img_width:%d\n", sub_info.img_height, sub_info.img_width);
+		uchar *edge_dmap = new uchar[sub_info.img_height*sub_info.img_width];
 		memset(edge_dmap, 0 , sub_info.node_c);
-		e_matcher.edgeMatch(left_g.data, right_g.data, left_sqr_result, right_sqr_result, edge_dmap);
+		cwz_timer::start();
+		e_matcher.edgeMatch(left_g.data, right_g.data, left_gra_result, right_gra_result, edge_dmap);
+		cwz_timer::time_display("edgeMatch");
+		enhanceDepthMap(edge_dmap, sub_info);
 		show_cv_img("edge_dmap", edge_dmap, sub_info.img_height, sub_info.img_width, 1, false);
 
 
@@ -278,14 +288,20 @@ int main()
 	return 0;
 }
 
-void showEdge(cv::Mat &left, cv::Mat &right, cv::Mat &left_g, cv::Mat &right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size){
+void enhanceDepthMap(uchar *dmap, match_info sub_info){
+	uchar max_v = get_max_value<uchar>(dmap, sub_info.node_c);
+	for(int idx = 0 ; idx < sub_info.node_c ; idx++)
+	{
+		dmap[idx] = dmap[idx] * (double) IntensityLimit / (double)max_v;
+	}
+}
+
+void showEdge(uchar *left_g, uchar *right_g, cv::Mat &left_edge, cv::Mat &right_edge, int lowThreshold, int ratio, int kernel_size){
 	//edge extraction
 	//left_g.data = dmap_generator.left_gray_1d_arr;
 	//right_g.data = dmap_generator.right_gray_1d_arr;
-	cvtColor( left, left_g, CV_BGR2GRAY );
-	cvtColor( right, right_g, CV_BGR2GRAY );
-	blur( left_g, left_edge, cv::Size(5,5) );
-	blur( right_g, right_edge, cv::Size(5,5) );
+	left_edge.data = left_g;
+	right_edge.data = right_g;
 	cwz_timer::start();
 	Canny( left_edge, left_edge, lowThreshold, lowThreshold*ratio, kernel_size );
 	Canny( right_edge, right_edge, lowThreshold, lowThreshold*ratio, kernel_size );
