@@ -160,7 +160,7 @@ inline DP_TABLE_Depth_Type get_eID_disp_if_valid(c1_pxl_interval &left, c1_pxl_i
 	return 0;
 }
 inline void matchCostFunc(c1_pxl_interval &left, c1_pxl_interval &right, dp_element &element, int max_disparity){
-	float mean_diff  = abs(left.mean - right.mean); 
+	float mean_diff  = abs(left.mean - right.mean) + 1; 
 	element.diagonal = abs((mean_diff*left.pxl_amt) - (mean_diff*right.pxl_amt));
 
 	//get diagonal disparity
