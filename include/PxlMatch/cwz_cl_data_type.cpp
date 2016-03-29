@@ -1,16 +1,5 @@
-#ifndef CWZ_CL_DATA_TYPE_H
-#define CWZ_CL_DATA_TYPE_H
-
-typedef struct {
-	int max_x_d;
-	int max_y_d;
-	int node_c;
-	int img_width;
-	int img_height;
-	float th;
-	float least_w;
-	void printf_match_info(const char *str);
-} match_info;
+#include "cwz_cl_data_type.h"
+#include "common_func.h"
 
 void match_info::printf_match_info(const char *str){
 	printf("-- match_info(%s) --\n", str);
@@ -94,6 +83,3 @@ switch(error){
     default: return "Unknown OpenCL error";
     }
 }
-
-
-#endif

@@ -1,5 +1,9 @@
 #include "common_func.h"
-#include <windows.h>
+//#include <windows.h>
+#include <iostream>
+// for change window name
+#define _AFXDLL
+#include <afxwin.h> 
 
 double  cwz_timer::m_pc_frequency = 0; 
 __int64 cwz_timer::m_counter_start = 0;
@@ -331,6 +335,56 @@ void cvmat_subsampling(cv::Mat &origin, cv::Mat &subsampled, int ch, int sub_pow
 	}
 }
 
+void write_cv_img(int index, std::string title, uchar *pixels, int h, int w, int type){
+	std::stringstream sstm;
+	sstm.str("");
+    sstm << title << index << ".bmp";
+	cv::Mat img = cv::Mat(h, w, type);
+	img.data = pixels;
+    cv::imwrite(sstm.str().c_str(), img);
+	img.release();
+}
+void write_cv_img(int index, std::string title, cv::Mat &img){
+	std::stringstream sstm;
+	sstm.str("");
+    sstm << title << index << ".bmp";
+    cv::imwrite(sstm.str().c_str(), img);
+}
+void show_cv_img(int index, std::string title, uchar *pixels, int h, int w, int c, bool shouldWait){
+	cv::Mat img;
+	if(c == 3)
+		img = cv::Mat(h, w, CV_8UC3);
+	else if(c == 1)
+		img = cv::Mat(h, w, CV_8UC1);
+	img.data = pixels;
+	
+	std::stringstream sstm;
+	sstm << title << "(" << index << ")";
+	cv::namedWindow(title, CV_WINDOW_KEEPRATIO);
+	HWND hWnd = (HWND)cvGetWindowHandle(title.c_str());
+	CWnd *wnd = CWnd::FromHandle(hWnd);
+	CWnd *wndP = wnd->GetParent();
+	wndP->SetWindowText((const char *) sstm.str().c_str()); 
+	cv::imshow(title, img);
+	if(shouldWait)
+		cvWaitKey(0);
+	else
+		cvWaitKey(10);
+}
+void show_cv_img(int index, std::string title, cv::Mat &img, bool shouldWait){
+	std::stringstream sstm;
+	sstm << title << "(" << index << ")";
+	cv::namedWindow(title, CV_WINDOW_KEEPRATIO);
+	HWND hWnd = (HWND)cvGetWindowHandle(title.c_str());
+	CWnd *wnd = CWnd::FromHandle(hWnd);
+	CWnd *wndP = wnd->GetParent();
+	wndP->SetWindowText((const char *) sstm.str().c_str()); 
+	cv::imshow(title, img);
+	if(shouldWait)
+		cvWaitKey(0);
+	else
+		cvWaitKey(10);
+}
 void show_cv_img(std::string title, uchar *pixels, int h, int w, int c, bool shouldWait){
 	cv::Mat img;
 	if(c == 3)
@@ -345,7 +399,6 @@ void show_cv_img(std::string title, uchar *pixels, int h, int w, int c, bool sho
 	else
 		cvWaitKey(10);
 }
-
 void show_cv_img(std::string fname, int c, bool shouldWait){
 	cv::Mat img;
 	if(c==3)
@@ -359,4 +412,19 @@ void show_cv_img(std::string fname, int c, bool shouldWait){
 		cvWaitKey(0);
 	else
 		cvWaitKey(10);
+}
+//ÀÉ®×³B²z
+bool cleanFile(std::string fname){
+
+    //clean the file
+    std::ofstream myfile (fname.c_str());
+    myfile << "";
+    myfile.close();
+
+    return true;
+}
+void writeStrToFile(std::string fname, std::string data){
+    std::ofstream myfile (fname.c_str(), std::ios::app);
+    myfile << data <<"\n";
+    myfile.close();
 }

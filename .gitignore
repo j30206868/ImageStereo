@@ -3,9 +3,11 @@ Release/*
 face/*
 dolls/*
 tsukuba/*
-DoublePointerTest.cpp
+Dataset/*
+TestCode/*
 *.bmp
 *.ppm
 *.txt
 *.png
+OpenCL.vcxproj*
 處理過影像/*

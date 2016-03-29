@@ -1,6 +1,7 @@
 #ifndef CWZ_INTEGRAL_IMG
 #define CWZ_INTEGRAL_IMG
 
+#include "common_func.h"
 #include <iostream>
 #include <math.h>
 
@@ -96,6 +97,6 @@ public:
 
 template <class N, class I, class O> void apply_gray_guided_img_filtering(uchar *img, int h, int w, N *nor_img, guided_img<I, O> gfilter);
 
-#include "cwz_integral_img.cpp"
+#include "cwz_integral_img.inl"
 
 #endif

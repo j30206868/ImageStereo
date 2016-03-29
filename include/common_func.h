@@ -13,6 +13,7 @@
 #include <time.h>
 
 
+#define default_method 1  //tree=1 ; sgbm=2
 #define IntensityLimit 256
 #define doTreeRefinement false
 #define defaultOcclusionTh 1
@@ -27,8 +28,8 @@ const bool mst_pre_mdf = true;
 const bool depth_post_mdf = true;
 
 
-#define CWZ_SHOW_LEFT_DMAP true
-#define CWZ_SHOW_RIGHT_DMAP true
+#define CWZ_SHOW_LEFT_DMAP false
+#define CWZ_SHOW_RIGHT_DMAP false
 
 class cwz_timer{
 public:
@@ -184,7 +185,15 @@ struct is_same<T, T>
 template<typename T, typename U>
 bool eqTypes() { return is_same<T, U>::value; }
 
+void write_cv_img(int index, std::string title, cv::Mat &img);
+void write_cv_img(int index, std::string title, uchar *pixels, int h, int w, int type);
+void show_cv_img(int index, std::string title, uchar *pixels, int h, int w, int c, bool shouldWait = true);
+void show_cv_img(int index, std::string title, cv::Mat &img, bool shouldWait = true);
 void show_cv_img(std::string title, uchar *pixels, int h, int w, int c, bool shouldWait = true);
 void show_cv_img(std::string fname, int c, bool shouldWait = true);
+
+//ÀÉ®×³B²z
+bool cleanFile(std::string fname);
+void writeStrToFile(std::string fname, std::string data);
 
 #endif //CWZ_COMMON_FUNC_H
