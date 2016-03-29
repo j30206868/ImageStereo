@@ -2,6 +2,7 @@
 
 float cwz_mst::sigma = default_sigma;
 bool cwz_mst::setWtoOne = setWto1;
+float cwz_mst::upbound = 1;
 float *cwz_mst::whistogram = new float[IntensityLimit];
 
 inline int get_1d_idx_from_2d(int x, int y, int w){
@@ -84,8 +85,13 @@ void cwz_mst::init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis){
 	for(int i=0 ; i<IntensityLimit ; i++){
 		if(cwz_mst::setWtoOne)
 			cwz_mst::whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
-		else
+		else{
 			cwz_mst::whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
+		
+			if(cwz_mst::whistogram[i] > cwz_mst::upbound){
+				cwz_mst::whistogram[i] = cwz_mst::upbound;
+			}
+		}
 	}
 
 	this->isInit = true;
@@ -337,24 +343,28 @@ void cwz_mst::reinit(){
 	memset(this->node_parent_id, -1, sizeof(int) * this->node_amt); 
 }
 
-void cwz_mst::updateSigma(float _sigma){
-	cwz_mst::sigma = _sigma;
+void cwz_mst::updateHistogram(){
 	for(int i=0 ; i<IntensityLimit ; i++){
 		if(cwz_mst::setWtoOne)
 			cwz_mst::whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
-		else
+		else{
 			cwz_mst::whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
+			//set up bound
+			if(cwz_mst::whistogram[i] > cwz_mst::upbound){
+				cwz_mst::whistogram[i] = cwz_mst::upbound;
+			}
+		}
 	}
+}
+
+void cwz_mst::updateSigma(float _sigma){
+	cwz_mst::sigma = _sigma;
+	cwz_mst::updateHistogram();
 }
 
 void cwz_mst::updateWtoOne(bool _setWtoOne){
 	cwz_mst::setWtoOne = _setWtoOne;
-	for(int i=0 ; i<IntensityLimit ; i++){
-		if(cwz_mst::setWtoOne)
-			cwz_mst::whistogram[i] = exp(-double(1) / (cwz_mst::sigma * (IntensityLimit - 1)));
-		else
-			cwz_mst::whistogram[i] = exp(-double(i) / (cwz_mst::sigma * (IntensityLimit - 1)));
-	}
+	cwz_mst::updateHistogram();
 }
 
 void compute_gradient(float*gradient, uchar **gray_image, int h, int w)

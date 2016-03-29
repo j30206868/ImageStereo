@@ -46,8 +46,6 @@ const int CWZ_STATUS_FRAME_BY_FRAME = 1;
 const int CWZ_STATUS_MODIFY_PARAM = 2;
 const int CWZ_STATUS_EXIT = 999;
 
-
-
 void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_num){
 	std::stringstream sstm;
 	if(frame_num < 10){
@@ -222,6 +220,8 @@ int main()
 			sub_info.th		 = cwz_loop_ctrl::Match_Cost_Th;
 			info.least_w	 = cwz_loop_ctrl::Match_Cost_Least_W;
 			sub_info.least_w = cwz_loop_ctrl::Match_Cost_Least_W;
+			cwz_mst::updateSigma(cwz_mst::sigma);
+			dmap_generator.doGuildFiltering = cwz_loop_ctrl::Do_Guided_Filer;
 
 			cwz_timer::t_start();
 		
@@ -320,6 +320,8 @@ int main()
 		cv::imshow("深度影像",refinedDMap);
 		printf("======= cwz_loop_ctrl::Match_Cost_Th     : %.2f ======= \n", cwz_loop_ctrl::Match_Cost_Th);
 		printf("======= cwz_loop_ctrl::Match_Cost_Least_W: %.2f ======= \n", cwz_loop_ctrl::Match_Cost_Least_W);
+		printf("======= cwz_mst::upbound                 : %.2f ======= \n", cwz_mst::upbound);
+		printf("======= cwz_loop_ctrl::Do_Guided_Filer   : %1d  ======= \n", cwz_loop_ctrl::Do_Guided_Filer);
 		char inputkey = cv::waitKey(30);
 
 		//儲存深度影像結果
@@ -492,6 +494,21 @@ int processInputKey(int inputkey, int &status, int &frame_count){
 			break;
 		}else if(inputkey == 'L'){
 			cwz_loop_ctrl::Match_Cost_Least_W += cwz_loop_ctrl::Match_Cost_Least_W_Step;
+			frame_count--;
+			break;
+		}else if(inputkey == 'w'){
+			cwz_mst::upbound = abs(cwz_mst::upbound - 0.01);
+			frame_count--;
+			break;
+		}else if(inputkey == 'W'){
+			cwz_mst::upbound = abs(cwz_mst::upbound + 0.01);
+			frame_count--;
+			break;
+		}else if(inputkey == 'g'){
+			if(cwz_loop_ctrl::Do_Guided_Filer)
+				cwz_loop_ctrl::Do_Guided_Filer = false;
+			else
+				cwz_loop_ctrl::Do_Guided_Filer = true;
 			frame_count--;
 			break;
 		}

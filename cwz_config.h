@@ -1,7 +1,7 @@
 //For inputkey loop control usage
 namespace cwz_loop_ctrl{
 	//±±¨îmatching cost threshold
-	static float Match_Cost_Th = 5;
+	static float Match_Cost_Th = 0;
 	static const float Match_Cost_Step = 0.5;
 	static float Match_Cost_Least_W = 0.01;
 	static float Match_Cost_Least_W_Step = 0.01;
@@ -13,4 +13,7 @@ namespace cwz_loop_ctrl{
 	static const int METHOD_TREE_NO_REFINE = 1;
 	static const int MEDTHO_CV_SGNM = 2;
 	static const int M_Key_total = 3;
+
+	//±±¨îÂoªi
+	static bool Do_Guided_Filer = true;
 };

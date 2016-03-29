@@ -10,7 +10,9 @@ public:
 	static float sigma;
 	static bool setWtoOne;
 	static float *whistogram;
+	static float upbound;
 	//update sigma
+	static void updateHistogram();
 	static void updateSigma(float _sigma);
 	static void updateWtoOne(bool _setWtoOne);
 
