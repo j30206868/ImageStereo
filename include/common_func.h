@@ -129,11 +129,6 @@ void free_3d_arr(T ***arr, int h, int w, int b)
 //將format string切成陣列
 int closestDelimiterPosi(std::string str, std::string *delimiters, int delCount, int &delLength);
 std::string *splitInstructions(std::string str, std::string *delimiters, int delCount, int &length);
-float *splitDataContent(std::string str, std::string delimiter, int &length);
-
-//讀檔案存成match cost
-float *readMatchCostFromFile(std::string fname, int h, int w, int max_disparity, float *my_match_cost);
-void readDisparityFromFile(std::string fname, int h, int w, cv::Mat &dMap);
 
 int *c3_mat_to_1d_int_arr(cv::Mat img, int h, int w);
 void c3_mat_to_1d_int_arr(cv::Mat img, int *out, int h, int w);

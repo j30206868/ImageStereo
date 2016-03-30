@@ -11,8 +11,9 @@ namespace cwz_loop_ctrl{
 	static int       Mode = 0;
 	static const int METHOD_TREE = 0;
 	static const int METHOD_TREE_NO_REFINE = 1;
-	static const int MEDTHO_CV_SGNM = 2;
-	static const int M_Key_total = 3;
+	static const int METHOD_FILL_SCANLINE = 2;
+	static const int MEDTHO_CV_SGNM = 3;
+	static const int M_Key_total = 4;
 
 	//±±¨îÂoªi
 	static bool Do_Guided_Filer = true;
@@ -41,3 +42,4 @@ namespace cwz_loop_ctrl{
 #include "TreeFilter/cwz_mst.h"
 #include "TreeFilter/cwz_disparity_generation.h"
 #include "GuidedFilter/cwz_integral_img.h"
+#include "EdgeMatch/cwz_edge_detect.h"

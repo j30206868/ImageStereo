@@ -316,6 +316,11 @@ void dmap_refine::set_left_right_dmap_value(uchar *left_dmap, uchar *right_dmap)
 	for(int i=0 ; i<node_amt; i++)
 		right_dmap_1d[i] = right_dmap[i];
 }
+
+void dmap_refine::set_left_edge_map(uchar *_left_edge){
+	this->left_edge = _left_edge;
+}
+
 void dmap_refine::detect_occlusion(){
 	memset(left_mask_1d, true, sizeof(bool) * node_amt);
 
@@ -344,6 +349,37 @@ void dmap_refine::calc_new_cost_after_left_right_check(){
 		}
 	}
 }
+inline uchar fineStableNeighbor(uchar *dmap, bool *mask, uchar *edgemap, int idx, int sIdx, int w){
+	int i;
+	int s_disp = 0;
+	int s_disp_idx;
+	int e_disp = 0;
+	int e_disp_idx;
+	for(i=idx-1 ; i>=sIdx ; i--)
+		if(mask[i] == true){
+			s_disp = dmap[i];
+			s_disp_idx = i;
+			break;
+		}else if(edgemap[i] == 255){//碰到edge還沒有stable 則放棄不找
+			return 0;
+		}
+	for(i=idx+1 ; i<w ; i++)
+		if(mask[i] == true){
+			e_disp = dmap[i];
+			e_disp_idx = i;
+			break;
+		}else if(edgemap[i] == 255){//碰到edge還沒有stable 則放棄不找
+			return 0;
+		}
+	if(s_disp > 0 && e_disp > 0){
+		/*float total = e_disp_idx - s_disp_idx;
+		float d_step = (e_disp - s_disp) / total;
+		mask[idx] = true;
+		return cvRound(s_disp + ((idx - s_disp_idx) * d_step));*/
+		return (s_disp+e_disp) / 2;
+	}
+	return 0;
+}
 uchar *dmap_refine::refinement(int mode){
 	int w = info.img_width;
 	int h = info.img_height;
@@ -354,7 +390,22 @@ uchar *dmap_refine::refinement(int mode){
 		mst.cost_agt();
 		return mst.pick_best_dispairty();
 	}else if(mode == dmap_refine::MODE_SCANLINE_FILL){
-	
+		//
+		uchar *refined_dmap = new uchar[w*h];
+		int base_idx;
+		int _idx;
+		for(int y=0 ; y<h ; y++){
+			base_idx = y * w;
+			for(int x=0 ; x<w ; x++){
+				_idx = base_idx + x;
+				if(left_mask_1d[_idx] == false){
+					//往左右找stable 都要找到才行
+					refined_dmap[_idx] = fineStableNeighbor(&left_dmap_1d[base_idx], &left_mask_1d[base_idx], &left_edge[base_idx], x, 0, w);
+				}else
+					refined_dmap[_idx] = left_dmap_1d[_idx];
+			}
+		}
+		return refined_dmap;
 	}else{
 		uchar *refined_dmap = new uchar[w*h];
 		for(int i=0 ; i<w*h ; i++){
