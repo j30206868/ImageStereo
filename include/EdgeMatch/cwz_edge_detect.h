@@ -61,7 +61,7 @@ public:
 	bool useExpandImg;
 
 	cl_int err;
-	void cwz_edge_detector::init(cl_context &_context, cl_device_id &_device, int _w, int _h, bool _useExpandImg, int _exp_w, int _exp_h);//for expand image
+	void init(cl_context &_context, cl_device_id &_device, int _w, int _h, bool _useExpandImg, int _exp_w, int _exp_h);//for expand image
 	void init(cl_context &context, cl_device_id &device, int _w, int _h, bool _useExpandImg = false);//for default no expand image used
 	void releaseRes();
 	int edgeDetect(uchar *gray_img, EDGE_DETECT_RESULT_TYPE *result_img);
@@ -90,6 +90,7 @@ public:
 	uchar *sqr_result;
 	void init(int _w, int _h);
 	void doLocalTh(uchar *img);
+	uchar *do_sqr(uchar *img);
 	void showResult();
 	void releaseRes();
 };

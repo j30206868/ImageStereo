@@ -40,6 +40,13 @@ void cwz_lth_proc::doLocalTh(uchar *img){
 	cwz_local_threshold(exp_img, exp_int_img, exp_result, exp_w, exp_h, sqr_kw, sqr_kh, th);
 	getGrayImgFromExpandedImg(exp_result, sqr_result, w, h, max_kw, max_kh);
 }
+uchar *cwz_lth_proc::do_sqr(uchar *img){
+	expandGrayImgBorder(img, exp_img, w, h, max_kw, max_kh);
+	buildIntegralImg<uchar, int>(exp_img, exp_int_img, exp_w, exp_h);
+	cwz_local_threshold(exp_img, exp_int_img, exp_result, exp_w, exp_h, sqr_kw, sqr_kh, th);
+	getGrayImgFromExpandedImg(exp_result, sqr_result, w, h, max_kw, max_kh);
+	return sqr_result;
+}
 
 void cwz_lth_proc::showResult(){
 	//show

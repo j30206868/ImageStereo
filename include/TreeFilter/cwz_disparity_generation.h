@@ -129,6 +129,8 @@ private:
 	uchar *right_dmap_1d;
 	uchar **left_dmap_2d;
 	uchar **right_dmap_2d;
+	
+	uchar *left_edge; 
 
 public:
 	static int MODE_NO;
@@ -137,6 +139,7 @@ public:
 
 	void init(cwz_mst &_mst, match_info &_info, uchar *_left_dmap_1d, uchar *_right_dmap_1d, int _occlusion_threshold = defaultOcclusionTh);
 	void init(cwz_mst &_mst, match_info &_info, int _occlusion_threshold = 0);
+	void set_left_edge_map(uchar *_left_edge);
 	void set_left_right_dmap_value(uchar *left_dmap, uchar *right_dmap);
 
 	void detect_occlusion();

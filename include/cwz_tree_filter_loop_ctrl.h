@@ -54,7 +54,7 @@ bool cwz_cmd_processor::readTreeLoopCommandStr(){
 			*this->frame_count = std::atoi(blocks[i+1].c_str());
 			printf("Jump to image number %d\n", *this->frame_count);
 		}else{
-			printf("cwz_cmd_processor::readTreeLoopCommandStr() Error: variable name '%s' can't be recognized.\n", blocks[i]); 
+			printf("cwz_cmd_processor::readTreeLoopCommandStr() Error: variable name can't be recognized.\n"); 
 			system("PAUSE");
 		}
 	}
@@ -85,8 +85,11 @@ int processInputKey(int inputkey, int &status, int &frame_count){
 			break;
 		}else if(inputkey == 'k'){
 			status = cwz_loop_ctrl::CV_IMG_STATUS_KEEPGOING;
-		}else if(inputkey == 'm'){
-			cwz_loop_ctrl::M_Key_counter++;
+		}else if(inputkey == 'm' || inputkey == 'M' ){
+			if(inputkey == 'm')
+				cwz_loop_ctrl::M_Key_counter++;
+			else
+				cwz_loop_ctrl::M_Key_counter--;
 			int mode_v = cwz_loop_ctrl::M_Key_counter % cwz_loop_ctrl::M_Key_total;
 			if(mode_v == cwz_loop_ctrl::MEDTHO_CV_SGNM){
 				cwz_loop_ctrl::Mode = cwz_loop_ctrl::MEDTHO_CV_SGNM;
@@ -94,6 +97,8 @@ int processInputKey(int inputkey, int &status, int &frame_count){
 				cwz_loop_ctrl::Mode = cwz_loop_ctrl::METHOD_TREE;
 			}else if(mode_v == cwz_loop_ctrl::METHOD_TREE_NO_REFINE){
 				cwz_loop_ctrl::Mode = cwz_loop_ctrl::METHOD_TREE_NO_REFINE;
+			}else if(mode_v == cwz_loop_ctrl::METHOD_FILL_SCANLINE){
+				cwz_loop_ctrl::Mode = cwz_loop_ctrl::METHOD_FILL_SCANLINE;
 			}
 			frame_count--;
 			break;

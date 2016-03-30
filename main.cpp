@@ -6,9 +6,9 @@
 
 #include <time.h>
 
-#include "Config/cwz_config.h"
-#include "Config/cwz_tree_filter_loop_ctrl.h"
-
+#include "cwz_config.h"
+#include "cwz_tree_filter_loop_ctrl.h"
+/*
 //const char* LeftIMGName  = "Dataset/tsukuba/scene1.row3.col1.ppm"; 
 //const char* RightIMGName = "Dataset/tsukuba/scene1.row3.col3.ppm";
 //const char* LeftIMGName  = "Dataset/face/face1.png"; 
@@ -16,7 +16,7 @@
 //const char* LeftIMGName  = "Dataset/dolls/dolls1.png"; 
 //const char* RightIMGName = "Dataset/dolls/dolls2.png";
 //const char* LeftIMGName  = "Dataset/structure/struct_left.bmp"; 
-//const char* RightIMGName = "Dataset/structure/struct_right.bmp";
+//const char* RightIMGName = "Dataset/structure/struct_right.bmp";*/
 const char* LeftIMGName  = "ImgSeries/left01.bmp"; 
 const char* RightIMGName = "ImgSeries/right01.bmp";
 
@@ -85,6 +85,9 @@ int main()
 	dmap_ups.init(context, device, program, err, down_sample_pow, left_b, info, sub_info, NULL);
 
 	dmap_ups.setup_mst_img();
+
+	cwz_lth_proc left_th_proc;
+	left_th_proc.init(sub_info.img_width, sub_info.img_height);
 	
 	uchar *left_dmap;
 	uchar *right_dmap;
@@ -108,8 +111,9 @@ int main()
 			write_cv_img(frame_count, dmap_out_fname, refinedDMap);
 			show_cv_img(frame_count, "深度影像", refinedDMap, false);
 			//cv::imshow("stereoSGBM",refinedDMap);
-		}else if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE || 
-				 cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE_NO_REFINE)
+		}else if((cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE || 
+				  cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE_NO_REFINE) || 
+				  cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_FILL_SCANLINE)
 		{   //update variable value from global config
 			info.th			 = cwz_loop_ctrl::Match_Cost_Th;
 			sub_info.th		 = cwz_loop_ctrl::Match_Cost_Th;
@@ -140,9 +144,21 @@ int main()
 			{printf( "cwz_dmap_generate right_dmap failed...!" );return 0;}
 			cwz_timer::time_display("- generate right map -");
 		
+
+			//cwz_mst::updateWtoOne(true);
+			cwz_mst::updateSigma(cwz_mst::sigma * 2);
 			cwz_timer::start();
-			refined_dmap = dmap_ref.refinement(cwz_loop_ctrl::Mode != cwz_loop_ctrl::METHOD_TREE_NO_REFINE);
+			if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_FILL_SCANLINE){
+				dmap_ref.set_left_edge_map( left_th_proc.do_sqr(dmap_generator.left_gray_1d_arr) );
+				refined_dmap = dmap_ref.refinement(dmap_refine::MODE_SCANLINE_FILL);
+			}else if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE_NO_REFINE){
+				refined_dmap = dmap_ref.refinement(dmap_refine::MODE_NO);
+			}else{
+				refined_dmap = dmap_ref.refinement(dmap_refine::MODE_TREE);
+			}
 			cwz_timer::time_display("- calc_new_cost_after_left_right_check -");
+			//cwz_mst::updateWtoOne(cwz_mst::setWtoOne);
+			cwz_mst::updateSigma(cwz_mst::sigma / 2);
 
 			if(down_sample_pow > 1){
 				//do up sampling
@@ -181,7 +197,7 @@ int main()
 		printf("======= cwz_loop_ctrl::Do_Guided_Filer   : %1d  ======= \n", cwz_loop_ctrl::Do_Guided_Filer);
 
 		//顯示與上張影像的不同點
-		//show_img_diff_with_former(lastLm, lastRm, left, right, info);
+		show_img_diff_with_former(lastLm, lastRm, left, right, info);
 		//儲存上一張影像
 		memcpy(lastLm.data, left.data  ,sub_info.node_c * 3);
 		memcpy(lastRm.data, right.data ,sub_info.node_c * 3);
@@ -209,7 +225,6 @@ int main()
 	//}while((ch = getchar()) != 'e');
 	}while(!left.empty()&&!right.empty());
 	//
-
 	clReleaseProgram(program);
 	clReleaseContext(context);
 
