@@ -3,7 +3,7 @@
 
 #include <opencv2\opencv.hpp>
 
-#include <cstdint>
+#include <stdint.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>

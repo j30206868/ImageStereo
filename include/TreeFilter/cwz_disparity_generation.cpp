@@ -319,6 +319,7 @@ void dmap_refine::set_left_right_dmap_value(uchar *left_dmap, uchar *right_dmap)
 
 void dmap_refine::set_left_edge_map(uchar *_left_edge){
 	this->left_edge = _left_edge;
+	show_cv_img("left_edge", left_edge, info.img_height, info.img_width, 1, false);
 }
 
 void dmap_refine::detect_occlusion(){
@@ -349,7 +350,10 @@ void dmap_refine::calc_new_cost_after_left_right_check(){
 		}
 	}
 }
-inline uchar fineStableNeighbor(uchar *dmap, bool *mask, uchar *edgemap, int idx, int sIdx, int w){
+inline uchar fineUDStableNeighbor(uchar *dmap, bool *mask, uchar *edgemap, int idx, int sIdx, int h, int w){
+
+}
+inline uchar fineLRStableNeighbor(uchar *dmap, bool *mask, uchar *edgemap, int idx, int sIdx, int w){
 	int i;
 	int s_disp = 0;
 	int s_disp_idx;
@@ -372,11 +376,11 @@ inline uchar fineStableNeighbor(uchar *dmap, bool *mask, uchar *edgemap, int idx
 			return 0;
 		}
 	if(s_disp > 0 && e_disp > 0){
-		/*float total = e_disp_idx - s_disp_idx;
+		float total = e_disp_idx - s_disp_idx;
 		float d_step = (e_disp - s_disp) / total;
 		mask[idx] = true;
-		return cvRound(s_disp + ((idx - s_disp_idx) * d_step));*/
-		return (s_disp+e_disp) / 2;
+		return cvRound(s_disp + ((idx - s_disp_idx) * d_step));
+		//return (s_disp+e_disp) / 2;
 	}
 	return 0;
 }
@@ -400,7 +404,7 @@ uchar *dmap_refine::refinement(int mode){
 				_idx = base_idx + x;
 				if(left_mask_1d[_idx] == false){
 					//往左右找stable 都要找到才行
-					refined_dmap[_idx] = fineStableNeighbor(&left_dmap_1d[base_idx], &left_mask_1d[base_idx], &left_edge[base_idx], x, 0, w);
+					refined_dmap[_idx] = fineLRStableNeighbor(&left_dmap_1d[base_idx], &left_mask_1d[base_idx], &left_edge[base_idx], x, 0, w);
 				}else
 					refined_dmap[_idx] = left_dmap_1d[_idx];
 			}

@@ -5,9 +5,11 @@ dolls/*
 tsukuba/*
 Dataset/*
 TestCode/*
+Output/*
 *.bmp
 *.ppm
 *.txt
 *.png
+*.pro.user
 OpenCL.vcxproj*
 處理過影像/*

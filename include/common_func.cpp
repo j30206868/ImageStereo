@@ -1,9 +1,9 @@
 #include "common_func.h"
-//#include <windows.h>
 #include <iostream>
 // for change window name
 
 #ifdef __MINGW32__
+	#include <windows.h>
 #elif _WIN32
 	#define _AFXDLL
 	#include <afxwin.h> 
@@ -16,7 +16,7 @@ __int64 cwz_timer::t_counter_start = 0;
 
 //讀line轉成blocks處理
 int closestDelimiterPosi(std::string str, std::string *delimiters, int delCount, int &delLength){
-	int minIdx = str.length();
+    int minIdx = str.length();
 	bool isFound = false;
 	int posi;
 	for(int i=0 ; i<delCount ; i++){
@@ -32,11 +32,11 @@ int closestDelimiterPosi(std::string str, std::string *delimiters, int delCount,
 
 	if(isFound)
 		return minIdx;
-	else
+    else
 		return -1;
 }
 std::string *splitInstructions(std::string str, std::string *delimiters, int delCount, int &length){
-	std::string buffer[10];
+    std::string buffer[10];
 	int idx = 0;
 	
 	int posi=0;
@@ -64,11 +64,11 @@ std::string *splitInstructions(std::string str, std::string *delimiters, int del
 		idx++;
 	}
 
-	length = idx;
+    length = idx;
 	std::string *result = new std::string[length];
 	for(int i=0 ; i<length ;i++)
 	{
-		result[i] = buffer[i];
+    	result[i] = buffer[i];
 	}
 
 	return result;

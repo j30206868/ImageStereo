@@ -8,6 +8,9 @@
 
 #include "cwz_config.h"
 #include "cwz_tree_filter_loop_ctrl.h"
+
+#include <GL/gl.h>
+#include <GL/glu.h>
 /*
 //const char* LeftIMGName  = "Dataset/tsukuba/scene1.row3.col1.ppm"; 
 //const char* RightIMGName = "Dataset/tsukuba/scene1.row3.col3.ppm";
@@ -146,7 +149,7 @@ int main()
 		
 
 			//cwz_mst::updateWtoOne(true);
-			cwz_mst::updateSigma(cwz_mst::sigma * 2);
+			cwz_mst::updateSigma(cwz_mst::sigma * 4);
 			cwz_timer::start();
 			if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_FILL_SCANLINE){
 				dmap_ref.set_left_edge_map( left_th_proc.do_sqr(dmap_generator.left_gray_1d_arr) );
@@ -158,7 +161,7 @@ int main()
 			}
 			cwz_timer::time_display("- calc_new_cost_after_left_right_check -");
 			//cwz_mst::updateWtoOne(cwz_mst::setWtoOne);
-			cwz_mst::updateSigma(cwz_mst::sigma / 2);
+			cwz_mst::updateSigma(cwz_mst::sigma / 4);
 
 			if(down_sample_pow > 1){
 				//do up sampling
@@ -197,7 +200,7 @@ int main()
 		printf("======= cwz_loop_ctrl::Do_Guided_Filer   : %1d  ======= \n", cwz_loop_ctrl::Do_Guided_Filer);
 
 		//顯示與上張影像的不同點
-		show_img_diff_with_former(lastLm, lastRm, left, right, info);
+		//show_img_diff_with_former(lastLm, lastRm, left, right, info);
 		//儲存上一張影像
 		memcpy(lastLm.data, left.data  ,sub_info.node_c * 3);
 		memcpy(lastRm.data, right.data ,sub_info.node_c * 3);

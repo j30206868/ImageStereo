@@ -3,8 +3,8 @@ void cwz_lth_proc::init(int _w, int _h){
 	this->w = _w;
 	this->h = _h;
 
-	this->max_kw = 5;
-	this->max_kh = 5;
+	this->max_kw = 2;
+	this->max_kh = 2;
 	this->exp_w = w + max_kw + max_kw;
 	this->exp_h = h + max_kh + max_kh;
 	int exp_node = exp_w * exp_h;
