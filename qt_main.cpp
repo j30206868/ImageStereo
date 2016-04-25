@@ -16,7 +16,8 @@
 //const char* LeftIMGName  = "Dataset/dolls/dolls1.png";
 //const char* RightIMGName = "Dataset/dolls/dolls2.png";
 //const char* LeftIMGName  = "Dataset/structure/struct_left.bmp";
-//const char* RightIMGName = "Dataset/structure/struct_right.bmp";*/
+//const char* RightIMGName = "Dataset/structure/struct_right.bmp";
+*/
 const char* LeftIMGName  = "ImgSeries/left01.bmp";
 const char* RightIMGName = "ImgSeries/right01.bmp";
 
@@ -32,6 +33,9 @@ void show_img_diff_with_former(cv::Mat &lastLm, cv::Mat &lastRm, cv::Mat &left, 
 
 int main()
 {
+    //show_cv_img("ImgSeries/dmap_6.bmp", 1, true);
+    //show_cv_img("ImgSeries/dmap_37.bmp", 1, true);
+
     const int down_sample_pow = 1;
     /*******************************************************
                         OpenCL context setup
@@ -171,6 +175,13 @@ int main()
             }
             cwz_timer::t_time_display("total");
 
+            //把黑色之外地方的深度全部歸零
+            for(int i=0 ; i<sub_info.node_c ; i++){
+                if(dmap_generator.left_gray_1d_arr[i] >= 170){
+                    refined_dmap[i] = 0;
+                }
+            }
+
             enhanceDMap(refined_dmap, sub_info);
             write_cv_img(frame_count, dmap_out_fname, refined_dmap, sub_info.img_height, sub_info.img_width, CV_8UC1);
             if(CWZ_SHOW_LEFT_DMAP)
@@ -197,7 +208,7 @@ int main()
         printf("======= cwz_loop_ctrl::Do_Guided_Filer   : %1d  ======= \n", cwz_loop_ctrl::Do_Guided_Filer);
 
         //顯示與上張影像的不同點
-        show_img_diff_with_former(lastLm, lastRm, left, right, info);
+        //show_img_diff_with_former(lastLm, lastRm, left, right, info);
         //儲存上一張影像
         memcpy(lastLm.data, left.data  ,sub_info.node_c * 3);
         memcpy(lastRm.data, right.data ,sub_info.node_c * 3);

@@ -9,8 +9,6 @@
 #include "cwz_config.h"
 #include "cwz_tree_filter_loop_ctrl.h"
 
-#include <GL/gl.h>
-#include <GL/glu.h>
 /*
 //const char* LeftIMGName  = "Dataset/tsukuba/scene1.row3.col1.ppm"; 
 //const char* RightIMGName = "Dataset/tsukuba/scene1.row3.col3.ppm";
@@ -111,6 +109,30 @@ int main()
 		if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::MEDTHO_CV_SGNM){
 			cv::Mat refinedDMap(sub_h, sub_w, CV_8UC1);
 			apply_opencv_stereoSGBM(left, right, refinedDMap, sub_info);
+			//把黑色之外地方的深度全部歸零
+            uchar *left_color_arr = left.data;
+			uchar *refine_arr = refinedDMap.data;
+			int max_v = 210;
+			int min_v = 100;
+			int max_diff = max_v - min_v;
+			int step = 255 / (max_v - min_v);
+            for(int i=0 ; i<sub_info.node_c*3 ; i+=3){
+                int tmp_total = (left_color_arr[i] + left_color_arr[i+1] + left_color_arr[i+2]) / 3.0;
+                if(tmp_total >= 170){
+                    refine_arr[i/3] = 0;
+				}else{
+				/*	int tmp = refine_arr[i/3] - min_v;
+
+					if(tmp >= max_diff){
+						refine_arr[i/3] = 255;
+					}else if(tmp > 0){
+						refine_arr[i/3] = refine_arr[i/3] * step;
+					}else{
+						refine_arr[i/3] = 0;
+					}
+				*/
+				}
+            }
 			write_cv_img(frame_count, dmap_out_fname, refinedDMap);
 			show_cv_img(frame_count, "深度影像", refinedDMap, false);
 			//cv::imshow("stereoSGBM",refinedDMap);
@@ -125,6 +147,8 @@ int main()
 			cwz_mst::updateSigma(cwz_mst::sigma);
 			dmap_generator.doGuildFiltering = cwz_loop_ctrl::Do_Guided_Filer;
 			//
+
+			//拿掉left, right中不可能是血管的部分
 
 			cwz_timer::t_start();
 		
@@ -147,7 +171,7 @@ int main()
 			{printf( "cwz_dmap_generate right_dmap failed...!" );return 0;}
 			cwz_timer::time_display("- generate right map -");
 		
-
+			uchar *left_edge = left_th_proc.do_sqr(dmap_generator.left_gray_1d_arr);
 			//cwz_mst::updateWtoOne(true);
 			cwz_mst::updateSigma(cwz_mst::sigma * 4);
 			cwz_timer::start();
@@ -174,6 +198,13 @@ int main()
 				show_cv_img("upDMap", upsampled_dmap, info.img_height, info.img_width, 1, false);
 			}
 			cwz_timer::t_time_display("total");
+
+			//把黑色之外地方的深度全部歸零
+			for(int i=0 ; i<sub_info.node_c ; i++){
+				if(dmap_generator.left_gray_1d_arr[i] >= 150){
+					refined_dmap[i] = 0;
+				}
+			}
 
 			enhanceDMap(refined_dmap, sub_info);
 			write_cv_img(frame_count, dmap_out_fname, refined_dmap, sub_info.img_height, sub_info.img_width, CV_8UC1);

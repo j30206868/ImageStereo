@@ -136,6 +136,16 @@ uchar *dmap_gen::generate_left_dmap(){
 	{ printf("generate_left_dmap: apply_cl_cost_match failed.\n"); }
 	cwz_timer::time_display("left cost matching");
 
+	//max_color_cost * color_ratio + max_gradient_cost * gradient_ratio
+	//=>
+	//7.0 * 0.11 + 2.0 * 0.89 = 2.55
+	/*float max_cost = 2.55;
+	for(int i=0 ; i<info->node_c ; i++){
+        if(left_gray_1d_arr[i] >= 150){
+            matching_result[i] = max_cost;
+		}
+	}*/
+
 	mst_L.cost_agt();
 
 	uchar *best_disparity = mst_L.pick_best_dispairty();
@@ -169,6 +179,18 @@ uchar *dmap_gen::generate_right_dmap(){
 							right_cwz_img, left_cwz_img, matching_result, match_result_len, *info, true) )
 	{ printf("generate_right_dmap: apply_cl_cost_match failed.\n"); }
 	cwz_timer::time_display("right cost matching");
+
+
+	//max_color_cost * color_ratio + max_gradient_cost * gradient_ratio
+	//=>
+	//7.0 * 0.11 + 2.0 * 0.89 = 2.55
+	/*float max_cost = 2.55;
+	for(int i=0 ; i<info->node_c ; i++){
+        if(right_gray_1d_arr[i] >= 150){
+            matching_result[i] = max_cost;
+		}
+	}*/
+
 	mst_R.cost_agt();
 
 	uchar *best_disparity = mst_R.pick_best_dispairty();
@@ -319,7 +341,7 @@ void dmap_refine::set_left_right_dmap_value(uchar *left_dmap, uchar *right_dmap)
 
 void dmap_refine::set_left_edge_map(uchar *_left_edge){
 	this->left_edge = _left_edge;
-	show_cv_img("left_edge", left_edge, info.img_height, info.img_width, 1, false);
+	//show_cv_img("left_edge", left_edge, info.img_height, info.img_width, 1, false);
 }
 
 void dmap_refine::detect_occlusion(){
