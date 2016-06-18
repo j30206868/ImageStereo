@@ -254,6 +254,48 @@ void write_cv_img(int index, std::string title, cv::Mat &img){
     sstm << title << index << ".bmp";
     cv::imwrite(sstm.str().c_str(), img);
 }
+
+static struct img_and_title{
+	cv::Mat img;
+	std::string title;
+};
+static void MouseCallBackFunc(int event, int x, int y, int flags, void* userdata)
+{
+     /*if  ( event == cv::EVENT_LBUTTONDOWN )
+     {
+          std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+     }
+     else if  ( event == cv::EVENT_RBUTTONDOWN )
+     {
+          std::cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+     }
+     else if  ( event == cv::EVENT_MBUTTONDOWN )
+     {
+          std::cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+     }
+     else if ( event == cv::EVENT_MOUSEMOVE )
+     {
+          std::cout << "Mouse move over the window - position (" << x << ", " << y << ")" << std::endl;
+     }*/
+	if ( event == cv::EVENT_MOUSEMOVE )
+     {
+          //std::cout << "Mouse move over the window - position (" << x << ", " << y << ")" << std::endl;
+		  //printf("Pixel: %d\n", lastIndexedImg.at<uchar>(y, x));
+
+		 img_and_title *mydata = ((img_and_title *)userdata);
+		 cv::Mat cloneImg = mydata->img.clone();
+
+		 int pixelcolor = cloneImg.at<uchar>(y, x);
+		 char pixel[5];
+		 sprintf(pixel, "%i", pixelcolor);
+		 cv::putText(cloneImg, pixel, cv::Point(x+10, y+10), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255), 2);
+		 std::stringstream sstm;
+		 sstm << "(" << x << "," << y << ")";
+		 cv::putText(cloneImg, sstm.str().c_str(), cv::Point(x+10, y+35), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255), 2);
+		 cv::imshow(mydata->title, cloneImg);
+     }
+}
+static img_and_title *mouseCallBackUserData = NULL;
 void show_cv_img(int index, std::string title, uchar *pixels, int h, int w, int c, bool shouldWait){
 	cv::Mat img;
 	if(c == 3)
@@ -262,18 +304,28 @@ void show_cv_img(int index, std::string title, uchar *pixels, int h, int w, int 
 		img = cv::Mat(h, w, CV_8UC1);
 	img.data = pixels;
 	
+	if(mouseCallBackUserData != NULL){
+		free( mouseCallBackUserData );
+		mouseCallBackUserData = NULL;
+	}
+	mouseCallBackUserData = new img_and_title();
+	mouseCallBackUserData->img   = img;
+	mouseCallBackUserData->title = title;
+
 	std::stringstream sstm;
 	sstm << title << "(" << index << ")";
 #ifdef __MINGW32__
-	cv::namedWindow(sstm.str().c_str(), CV_WINDOW_KEEPRATIO);
+	cv::namedWindow(sstm.str().c_str(), CV_WINDOW_FREERATIO);
 	cv::imshow(sstm.str().c_str(), img);
 #elif _WIN32
-	cv::namedWindow(title, CV_WINDOW_KEEPRATIO);
+	cv::namedWindow(title, CV_WINDOW_FREERATIO);
+	cv::setMouseCallback(title, MouseCallBackFunc, mouseCallBackUserData);
 	HWND hWnd = (HWND)cvGetWindowHandle(title.c_str());
 	CWnd *wnd = CWnd::FromHandle(hWnd);
 	CWnd *wndP = wnd->GetParent();
 	wndP->SetWindowText((const char *) sstm.str().c_str()); 
 	cv::imshow(title, img);
+	
 #endif
 	if(shouldWait)
 		cvWaitKey(0);

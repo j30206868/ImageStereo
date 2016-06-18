@@ -15,9 +15,11 @@ typedef struct {
 	int img_height;
 	float th;
 	float least_w;
+	char channel;
 	void printf_match_info(const char *str);
 } match_info;
 
+match_info *createMatchInfo(int w, int h, int channel);
 const char *getErrorString(cl_int error);
 
 

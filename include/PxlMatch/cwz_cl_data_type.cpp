@@ -6,6 +6,18 @@ void match_info::printf_match_info(const char *str){
 	printf("img_width:%3d | img_height:%3d | node_c:%6d\n", img_width, img_height, node_c);
 	printf("max_x_d:%3d | max_y_d:%3d\n", max_x_d, max_y_d);
 }
+match_info *createMatchInfo(int w, int h, int channel){
+	match_info *info = new match_info();
+	info->img_width  = w;
+	info->img_height = h;
+	info->channel    = channel;
+	info->node_c     = w * h;
+	info->max_x_d    = w / max_d_to_img_len_pow;
+	info->max_y_d    = h / max_d_to_img_len_pow;
+	info->th = 1;
+	info->least_w = 0.01;
+	return info;
+}
 
 const char *getErrorString(cl_int error)
 {

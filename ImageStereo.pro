@@ -47,4 +47,5 @@ HEADERS += \
     include/TreeFilter/cwz_mst.h \
     include/common_func.h \
     include/cwz_config.h \
-    include/cwz_tree_filter_loop_ctrl.h
+    include/cwz_tree_filter_loop_ctrl.h \
+    include/Vessel/math_3d.h

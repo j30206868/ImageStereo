@@ -10,7 +10,7 @@ void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_pr
 	int h = info->img_height;
 	int w = info->img_width;
 	int node_c = info->node_c;
-
+	info->printf_match_info("Info");
 	channel = mst_channel;
 
 	context = _context;

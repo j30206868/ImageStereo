@@ -16,7 +16,7 @@ namespace cwz_loop_ctrl{
 	static const int M_Key_total = 4;
 
 	//±±¨îÂoªi
-	static bool Do_Guided_Filer = false;
+	static bool Do_Guided_Filer = true;
 
 	//CV image inputkey state
 	static const int CV_IMG_STATUS_KEEPGOING = 0;

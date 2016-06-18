@@ -34,7 +34,7 @@ void show_img_diff_with_former(cv::Mat &lastLm, cv::Mat &lastRm, cv::Mat &left, 
 
 int main()
 {
-	const int down_sample_pow = 1;
+	const int down_sample_pow = 2;
 	/*******************************************************
 						OpenCL context setup
 	*******************************************************/
@@ -83,9 +83,9 @@ int main()
 	
 	dmap_generator.init(context, device, program, err, left, right, sub_info);
 	dmap_ref.init(dmap_generator.mst_L, sub_info, dmap_generator.left_dmap, dmap_generator.right_dmap);
-	dmap_ups.init(context, device, program, err, down_sample_pow, left_b, info, sub_info, NULL);
+	//dmap_ups.init(context, device, program, err, down_sample_pow, left_b, info, sub_info, NULL);
 
-	dmap_ups.setup_mst_img();
+	//dmap_ups.setup_mst_img();
 
 	cwz_lth_proc left_th_proc;
 	left_th_proc.init(sub_info.img_width, sub_info.img_height);
@@ -110,7 +110,7 @@ int main()
 			cv::Mat refinedDMap(sub_h, sub_w, CV_8UC1);
 			apply_opencv_stereoSGBM(left, right, refinedDMap, sub_info);
 			//把黑色之外地方的深度全部歸零
-            uchar *left_color_arr = left.data;
+            /*uchar *left_color_arr = left.data;
 			uchar *refine_arr = refinedDMap.data;
 			int max_v = 210;
 			int min_v = 100;
@@ -131,8 +131,8 @@ int main()
 						refine_arr[i/3] = 0;
 					}
 				*/
-				}
-            }
+				//}
+            //}
 			write_cv_img(frame_count, dmap_out_fname, refinedDMap);
 			show_cv_img(frame_count, "深度影像", refinedDMap, false);
 			//cv::imshow("stereoSGBM",refinedDMap);
@@ -187,7 +187,7 @@ int main()
 			//cwz_mst::updateWtoOne(cwz_mst::setWtoOne);
 			cwz_mst::updateSigma(cwz_mst::sigma / 4);
 
-			if(down_sample_pow > 1){
+			/*if(down_sample_pow > 1){
 				//do up sampling
 				uchar *upsampled_dmap;
 				info.printf_match_info("原影像資訊");
@@ -196,12 +196,12 @@ int main()
 				{ printf("cwz_up_sampling failed"); return 0; }
 				enhanceDMap(upsampled_dmap, info);
 				show_cv_img("upDMap", upsampled_dmap, info.img_height, info.img_width, 1, false);
-			}
+			}*/
 			cwz_timer::t_time_display("total");
 
 			//把黑色之外地方的深度全部歸零
 			for(int i=0 ; i<sub_info.node_c ; i++){
-				if(dmap_generator.left_gray_1d_arr[i] >= 150){
+				if(dmap_generator.left_gray_1d_arr[i] >= 170){
 					refined_dmap[i] = 0;
 				}
 			}
@@ -217,7 +217,7 @@ int main()
 
 			dmap_generator.mst_L.reinit();
 			dmap_generator.mst_R.reinit();
-			if(down_sample_pow > 1)	dmap_ups.mst_b.reinit();
+			//if(down_sample_pow > 1)	dmap_ups.mst_b.reinit();
 		}//end of method tree filtering
 		
 		//edge extraction

@@ -36,7 +36,7 @@ int main()
     //show_cv_img("ImgSeries/dmap_6.bmp", 1, true);
     //show_cv_img("ImgSeries/dmap_37.bmp", 1, true);
 
-    const int down_sample_pow = 1;
+    const int down_sample_pow = 2;
     /*******************************************************
                         OpenCL context setup
     *******************************************************/
@@ -65,8 +65,8 @@ int main()
     match_info sub_info;
     sub_info.img_height = sub_h;
     sub_info.img_width  = sub_w;
-    sub_info.max_x_d = sub_w / max_d_to_img_len_pow;
-    sub_info.max_y_d = sub_h / max_d_to_img_len_pow;
+    sub_info.max_x_d = sub_w / max_d_to_img_len_pow + 30;
+    sub_info.max_y_d = sub_h / max_d_to_img_len_pow + 30;
     sub_info.node_c  = sub_h * sub_w;
     sub_info.th = 1;
     sub_info.printf_match_info("縮小影像資訊");
@@ -74,8 +74,8 @@ int main()
     match_info info;
     info.img_height = left_b.rows;
     info.img_width = left_b.cols;
-    info.max_y_d = info.img_height / max_d_to_img_len_pow;
-    info.max_x_d = info.img_width  / max_d_to_img_len_pow;
+    info.max_y_d = info.img_height / max_d_to_img_len_pow + 30;
+    info.max_x_d = info.img_width  / max_d_to_img_len_pow + 30;
     info.node_c = info.img_height * info.img_width;
     info.th = 1;
 
@@ -85,9 +85,9 @@ int main()
 
     dmap_generator.init(context, device, program, err, left, right, sub_info);
     dmap_ref.init(dmap_generator.mst_L, sub_info, dmap_generator.left_dmap, dmap_generator.right_dmap);
-    dmap_ups.init(context, device, program, err, down_sample_pow, left_b, info, sub_info, NULL);
+    //dmap_ups.init(context, device, program, err, down_sample_pow, left_b, info, sub_info, NULL);
 
-    dmap_ups.setup_mst_img();
+    //dmap_ups.setup_mst_img();
 
     cwz_lth_proc left_th_proc;
     left_th_proc.init(sub_info.img_width, sub_info.img_height);
@@ -105,7 +105,7 @@ int main()
     int status = cwz_loop_ctrl::CV_IMG_STATUS_FRAME_BY_FRAME;
     char ch;
     do{
-        show_cv_img("Left Image", left.data, left.rows, left.cols, 3, false);
+        show_cv_img("Left Image", left.data, left.rows, left.cols, 3, true);
         show_cv_img("Right Image", right.data, right.rows, right.cols, 3, false);
 
         if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::MEDTHO_CV_SGNM){
@@ -163,7 +163,7 @@ int main()
             //cwz_mst::updateWtoOne(cwz_mst::setWtoOne);
             cwz_mst::updateSigma(cwz_mst::sigma / 2);
 
-            if(down_sample_pow > 1){
+            /*if(down_sample_pow > 1){
                 //do up sampling
                 uchar *upsampled_dmap;
                 info.printf_match_info("原影像資訊");
@@ -172,17 +172,17 @@ int main()
                 { printf("cwz_up_sampling failed"); return 0; }
                 enhanceDMap(upsampled_dmap, info);
                 show_cv_img("upDMap", upsampled_dmap, info.img_height, info.img_width, 1, false);
-            }
+            }*/
             cwz_timer::t_time_display("total");
 
             //把黑色之外地方的深度全部歸零
             for(int i=0 ; i<sub_info.node_c ; i++){
-                if(dmap_generator.left_gray_1d_arr[i] >= 170){
+                if(dmap_generator.left_gray_1d_arr[i] >= 100){
                     refined_dmap[i] = 0;
                 }
             }
 
-            enhanceDMap(refined_dmap, sub_info);
+            //enhanceDMap(refined_dmap, sub_info);
             write_cv_img(frame_count, dmap_out_fname, refined_dmap, sub_info.img_height, sub_info.img_width, CV_8UC1);
             if(CWZ_SHOW_LEFT_DMAP)
                 show_cv_img("left_dmap", left_dmap, sub_info.img_height, sub_info.img_width, 1, false);
@@ -194,7 +194,7 @@ int main()
 
             dmap_generator.mst_L.reinit();
             dmap_generator.mst_R.reinit();
-            if(down_sample_pow > 1)	dmap_ups.mst_b.reinit();
+            //if(down_sample_pow > 1)	dmap_ups.mst_b.reinit();
         }//end of method tree filtering
 
         //edge extraction
