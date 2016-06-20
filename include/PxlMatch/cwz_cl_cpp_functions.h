@@ -16,7 +16,7 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 
 template<class T>
 T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
-						   T *color_1d_arr, match_info &info, bool apply_median_filter = true)
+						   T *color_1d_arr, match_info &info, int channel, bool apply_median_filter = true)
 {
 	if(!apply_median_filter){
 		return color_1d_arr;
@@ -28,13 +28,20 @@ T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program 
 							   
 	cl_kernel mdf_kernel;
 
-	if(eqTypes<int, T>()){
-		mdf_kernel = clCreateKernel(program, "MedianFilterBitonic", 0);
-		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterBitonic kernel\n"; return 0; }
-	}else if(eqTypes<uchar, T>()){
+	if(eqTypes<int, T>() && channel == 3){
+		mdf_kernel = clCreateKernel(program, "MedianFilterBitonicC3", 0);
+		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterBitonicC3 kernel\n"; return 0; }
+	}else if(eqTypes<int, T>() && channel == 1){
+		mdf_kernel = clCreateKernel(program, "MedianFilterBitonicC1", 0);
+		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterBitonicC1 kernel\n"; return 0; }
+	}else if(eqTypes<uchar, T>() && channel == 1){
 		mdf_kernel = clCreateKernel(program, "MedianFilterGrayScale", 0);
 		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterGrayScale kernel\n"; return 0; }
+	}else if(eqTypes<float, T>() && channel == 1){
+		mdf_kernel = clCreateKernel(program, "MedianFilterFloatGrayScale", 0);
+		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterFloatGrayScale kernel\n"; return 0; }
 	}else{
+		printf("apply_cl_color_img_mdf: no this option.\n");
 		return 0;
 	}
 	cl_mem cl_arr = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(T) * node_c, color_1d_arr, NULL);
@@ -81,6 +88,7 @@ T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program 
 	if(err != CL_SUCCESS)  {
 		std::cout << getErrorString(err) << std::endl;
 		std::cerr << "Can't run kernel or read back data for median filter\n";
+		getErrorString(err);
 		delete[] result_arr;
 		clReleaseKernel(mdf_kernel);
 		clReleaseMemObject(cl_arr);
@@ -101,7 +109,7 @@ T *apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program 
 
 template<class T>
 int apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
-						   T *color_1d_arr, T *result_arr, match_info &info, bool apply_median_filter = true)
+						   T *color_1d_arr, T *result_arr, match_info &info, int channel, bool apply_median_filter = true)
 {
 	if(!apply_median_filter){
 		for(int i=0 ; i<info.node_c ; i++)
@@ -114,13 +122,20 @@ int apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program
 							   
 	cl_kernel mdf_kernel;
 
-	if(eqTypes<int, T>()){
-		mdf_kernel = clCreateKernel(program, "MedianFilterBitonic", 0);
-		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterBitonic kernel\n"; return 0; }
-	}else if(eqTypes<uchar, T>()){
+	if(eqTypes<int, T>() && channel == 3){
+		mdf_kernel = clCreateKernel(program, "MedianFilterBitonicC3", 0);
+		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterBitonicC3 kernel\n"; return 0; }
+	}else if(eqTypes<int, T>() && channel == 1){
+		mdf_kernel = clCreateKernel(program, "MedianFilterBitonicC1", 0);
+		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterBitonicC1 kernel\n"; return 0; }
+	}else if(eqTypes<uchar, T>() && channel == 1){
 		mdf_kernel = clCreateKernel(program, "MedianFilterGrayScale", 0);
 		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterGrayScale kernel\n"; return 0; }
+	}else if(eqTypes<float, T>() && channel == 1){
+		mdf_kernel = clCreateKernel(program, "MedianFilterFloatGrayScale", 0);
+		if(mdf_kernel == 0) { std::cerr << "Can't load MedianFilterFloatGrayScale kernel\n"; return 0; }
 	}else{
+		printf("apply_cl_color_img_mdf: no this option.\n");
 		return 0;
 	}
 	cl_mem cl_arr = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(T) * node_c, color_1d_arr, NULL);
@@ -165,6 +180,7 @@ int apply_cl_color_img_mdf(cl_context &context, cl_device_id &device, cl_program
 	if(err != CL_SUCCESS)  {
 		std::cout << getErrorString(err) << std::endl;
 		std::cerr << "Can't run kernel or read back data for median filter\n";
+		getErrorString(err);
 		delete[] result_arr;
 		clReleaseKernel(mdf_kernel);
 		clReleaseMemObject(cl_arr);

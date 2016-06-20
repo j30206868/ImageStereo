@@ -33,8 +33,8 @@ void dmap_gen::init(cl_context &_context, cl_device_id &_device, cl_program &_pr
 	left_cwz_img  = new cl_match_elem();
 	right_cwz_img = new cl_match_elem();
 
-	left_dmap = new uchar[info->node_c];
-	right_dmap = new uchar[info->node_c];
+	left_dmap = new CWZDISPTYPE[info->node_c];
+	right_dmap = new CWZDISPTYPE[info->node_c];
 
 	if( channel == 1 ){
 		left_img_arr_for_mst  = new uchar[info->node_c];
@@ -68,21 +68,21 @@ void dmap_gen::filtering(){
 		深度圖的精確度大大降低
 		apply_cl_color_img_mdf<int>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, *info, img_pre_mdf);
-	right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, *info, img_pre_mdf);
+	left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, *info, 3, img_pre_mdf);
+	right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, *info, 3, img_pre_mdf);
 
 	if( channel == 1 ){
-		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, left_img_arr_for_mst, *info, mst_pre_mdf)) )
+		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, left_img_arr_for_mst, *info, channel, mst_pre_mdf)) )
 		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); system("PAUSE"); }
 
-		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, right_gray_1d_arr, right_img_arr_for_mst, *info, mst_pre_mdf)) )
+		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, right_gray_1d_arr, right_img_arr_for_mst, *info, channel, mst_pre_mdf)) )
 		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); system("PAUSE"); }
 
 	}else{
-		apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, left_color_1d_for_3_mst, *info, mst_pre_mdf);
+		apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, left_color_1d_for_3_mst, *info, channel, mst_pre_mdf);
 		int_1d_color_to_uchar_1d_color(left_color_1d_for_3_mst, left_img_arr_for_mst, info->node_c);
 
-		apply_cl_color_img_mdf<int>(context, device, program, err,  right_color_1d_arr, right_color_1d_for_3_mst, *info, mst_pre_mdf);
+		apply_cl_color_img_mdf<int>(context, device, program, err,  right_color_1d_arr, right_color_1d_for_3_mst, *info, channel, mst_pre_mdf);
 		int_1d_color_to_uchar_1d_color(right_color_1d_for_3_mst, right_img_arr_for_mst, info->node_c);
 	}
 }
@@ -114,7 +114,7 @@ void dmap_gen::compute_cwz_img(){
 	compute_gradient(left_cwz_img->gradient , left_gray_2d_arr , info->img_height, info->img_width);
 	compute_gradient(right_cwz_img->gradient, right_gray_2d_arr, info->img_height, info->img_width);
 }
-uchar *dmap_gen::generate_left_dmap(){
+CWZDISPTYPE *dmap_gen::generate_left_dmap(){
 	/************************************************************************
 		用來做 mst 的灰階影像可以做Median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
@@ -148,17 +148,17 @@ uchar *dmap_gen::generate_left_dmap(){
 
 	mst_L.cost_agt();
 
-	uchar *best_disparity = mst_L.pick_best_dispairty();
+	CWZDISPTYPE *best_disparity = mst_L.pick_best_dispairty();
 
 	/************************************************************************
 		取得深度圖後可以做median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, left_dmap, *info, depth_post_mdf)) )
+	if( !(apply_cl_color_img_mdf<CWZDISPTYPE>(context, device, program, err, best_disparity, left_dmap, *info, 1, depth_post_mdf)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 	return left_dmap;
 }
-uchar *dmap_gen::generate_right_dmap(){
+CWZDISPTYPE *dmap_gen::generate_right_dmap(){
 	/************************************************************************
 		用來做 mst 的灰階影像可以做Median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
@@ -193,13 +193,13 @@ uchar *dmap_gen::generate_right_dmap(){
 
 	mst_R.cost_agt();
 
-	uchar *best_disparity = mst_R.pick_best_dispairty();
+	CWZDISPTYPE *best_disparity = mst_R.pick_best_dispairty();
 
 	/************************************************************************
 		取得深度圖後可以做median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, right_dmap, *info, depth_post_mdf)) )
+	if( !(apply_cl_color_img_mdf<CWZDISPTYPE>(context, device, program, err, best_disparity, right_dmap, *info, 1, depth_post_mdf)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 	return right_dmap;
 }
@@ -208,7 +208,7 @@ uchar *dmap_gen::generate_right_dmap(){
 									dmap upsampling
 ********************************************************************************/
 void dmap_upsam::init(cl_context &_context, cl_device_id &_device, cl_program &_program, cl_int &_err,
-					  int _down_sample_pow, cv::Mat img_b, match_info &_info, match_info &_sub_info, uchar *_sub_disparity_map)
+					  int _down_sample_pow, cv::Mat img_b, match_info &_info, match_info &_sub_info, CWZDISPTYPE *_sub_disparity_map)
 {
 	do_mst_mdf = true;
 	do_dmap_mdf = true;
@@ -245,23 +245,23 @@ void dmap_upsam::init(cl_context &_context, cl_device_id &_device, cl_program &_
 		left_color_1d_arr_uchar = new uchar[node_c * 3];
 	}
 }
-void dmap_upsam::set_sub_disparity_map(uchar *_sub_disparity_map){
+void dmap_upsam::set_sub_disparity_map(CWZDISPTYPE *_sub_disparity_map){
 	sub_disparity_map = _sub_disparity_map;
 }
 void dmap_upsam::setup_mst_img(){
 	if(channel == 1){
 		int_1d_to_gray_arr(img_color_1d_arr, img_gray_1d_arr, info.node_c);
 
-		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, img_gray_1d_arr, left_gray_1d_arr_for_mst, info, do_mst_mdf)) )
+		if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, img_gray_1d_arr, left_gray_1d_arr_for_mst, info, channel, do_mst_mdf)) )
 		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); system("PAUSE"); }
 		mst_b.set_img(left_gray_1d_arr_for_mst);
 	}else{
-		apply_cl_color_img_mdf<int>(context, device, program, err,  img_color_1d_arr, left_color_1d_for_3_mst, info, do_mst_mdf);
+		apply_cl_color_img_mdf<int>(context, device, program, err,  img_color_1d_arr, left_color_1d_for_3_mst, info, channel, do_mst_mdf);
 		int_1d_color_to_uchar_1d_color(left_color_1d_for_3_mst, left_color_1d_arr_uchar, info.node_c);
 		mst_b.set_img(left_color_1d_arr_uchar);
 	}
 }
-uchar *dmap_upsam::upsampling(){
+CWZDISPTYPE *dmap_upsam::upsampling(){
 	cwz_timer::start();
 	mst_b.mst();
 	cwz_timer::time_display("upsampling do MST");
@@ -297,7 +297,7 @@ uchar *dmap_upsam::upsampling(){
 	upsampled_dmap = mst_b.pick_best_dispairty();
 	cwz_timer::time_display("upsampling pick_best_disparity()");
 
-	if( !(apply_cl_color_img_mdf<uchar>(context, device, program, err, upsampled_dmap, upsampled_dmap, info, do_dmap_mdf)) )
+	if( !(apply_cl_color_img_mdf<CWZDISPTYPE>(context, device, program, err, upsampled_dmap, upsampled_dmap, info, 1, do_dmap_mdf)) )
 	{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
 
 	return upsampled_dmap;
@@ -307,7 +307,7 @@ uchar *dmap_upsam::upsampling(){
 									dmap refine
 ********************************************************************************/
 
-void dmap_refine::init(cwz_mst &_mst, match_info &_info, uchar *_left_dmap_1d, uchar *_right_dmap_1d, int _occlusion_threshold){
+void dmap_refine::init(cwz_mst &_mst, match_info &_info, CWZDISPTYPE *_left_dmap_1d, CWZDISPTYPE *_right_dmap_1d, int _occlusion_threshold){
 	occlusion_threshold = _occlusion_threshold;
 
 	mst = _mst;
@@ -323,16 +323,16 @@ void dmap_refine::init(cwz_mst &_mst, match_info &_info, uchar *_left_dmap_1d, u
 	left_dmap_1d = _left_dmap_1d;
 	right_dmap_1d = _right_dmap_1d;
 
-	left_dmap_2d  = map_1d_arr_to_2d_arr<uchar>(left_dmap_1d , h, w);
-	right_dmap_2d = map_1d_arr_to_2d_arr<uchar>(right_dmap_1d, h, w);
+	left_dmap_2d  = map_1d_arr_to_2d_arr<CWZDISPTYPE>(left_dmap_1d , h, w);
+	right_dmap_2d = map_1d_arr_to_2d_arr<CWZDISPTYPE>(right_dmap_1d, h, w);
 	
 }
 void dmap_refine::init(cwz_mst &_mst, match_info &_info, int _occlusion_threshold){
-	left_dmap_1d = new uchar[node_amt];
-	right_dmap_1d = new uchar[node_amt];
+	left_dmap_1d = new CWZDISPTYPE[node_amt];
+	right_dmap_1d = new CWZDISPTYPE[node_amt];
 	init(_mst, _info, left_dmap_1d, right_dmap_1d);
 }
-void dmap_refine::set_left_right_dmap_value(uchar *left_dmap, uchar *right_dmap){
+void dmap_refine::set_left_right_dmap_value(CWZDISPTYPE *left_dmap, CWZDISPTYPE *right_dmap){
 	for(int i=0 ; i<node_amt; i++)
 		left_dmap_1d[i] = left_dmap[i];
 	for(int i=0 ; i<node_amt; i++)
@@ -372,15 +372,15 @@ void dmap_refine::calc_new_cost_after_left_right_check(){
 		}
 	}
 }
-inline uchar fineUDStableNeighbor(uchar *dmap, bool *mask, uchar *edgemap, int idx, int sIdx, int h, int w){
+inline CWZDISPTYPE fineUDStableNeighbor(CWZDISPTYPE *dmap, bool *mask, uchar *edgemap, int idx, int sIdx, int h, int w){
 
 }
-inline uchar fineLRStableNeighbor(uchar *dmap, bool *mask, uchar *edgemap, int idx, int sIdx, int w){
+inline CWZDISPTYPE fineLRStableNeighbor(CWZDISPTYPE *dmap, bool *mask, uchar *edgemap, int idx, int sIdx, int w){
 	int i;
-	int s_disp = 0;
-	int s_disp_idx;
-	int e_disp = 0;
-	int e_disp_idx;
+	CWZDISPTYPE s_disp = 0;
+	CWZDISPTYPE s_disp_idx;
+	CWZDISPTYPE e_disp = 0;
+	CWZDISPTYPE e_disp_idx;
 	for(i=idx-1 ; i>=sIdx ; i--)
 		if(mask[i] == true){
 			s_disp = dmap[i];
@@ -406,7 +406,7 @@ inline uchar fineLRStableNeighbor(uchar *dmap, bool *mask, uchar *edgemap, int i
 	}
 	return 0;
 }
-uchar *dmap_refine::refinement(int mode){
+CWZDISPTYPE *dmap_refine::refinement(int mode){
 	int w = info.img_width;
 	int h = info.img_height;
 
@@ -417,7 +417,7 @@ uchar *dmap_refine::refinement(int mode){
 		return mst.pick_best_dispairty();
 	}else if(mode == dmap_refine::MODE_SCANLINE_FILL){
 		//
-		uchar *refined_dmap = new uchar[w*h];
+		CWZDISPTYPE *refined_dmap = new CWZDISPTYPE[w*h];
 		int base_idx;
 		int _idx;
 		for(int y=0 ; y<h ; y++){
@@ -433,7 +433,7 @@ uchar *dmap_refine::refinement(int mode){
 		}
 		return refined_dmap;
 	}else{
-		uchar *refined_dmap = new uchar[w*h];
+		CWZDISPTYPE *refined_dmap = new CWZDISPTYPE[w*h];
 		for(int i=0 ; i<w*h ; i++){
 			if(left_mask_1d[i] == false)
 				refined_dmap[i] = 0;
@@ -448,7 +448,7 @@ uchar *dmap_refine::refinement(int mode){
 /******************************************************************************
 									functions out of date
 ********************************************************************************/
-uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
+CWZDISPTYPE *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
 						 cv::Mat left,  cv::Mat right, cwz_mst &mst, match_info &info, bool inverse = false)
 {
 	time_t img_init_s = clock();
@@ -467,8 +467,8 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 		深度圖的精確度大大降低
 		apply_cl_color_img_mdf<int>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	int * left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, img_pre_mdf);
-	int *right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, info, img_pre_mdf);
+	int * left_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, 3, img_pre_mdf);
+	int *right_color_mdf_1d_arr = apply_cl_color_img_mdf<int>(context, device, program, err, right_color_1d_arr, info, 3, img_pre_mdf);
 
 	cl_match_elem *left_cwz_img  = new cl_match_elem(node_c, left_color_mdf_1d_arr , left_1d_gradient );
 	cl_match_elem *right_cwz_img = new cl_match_elem(node_c, right_color_mdf_1d_arr, right_1d_gradient);
@@ -494,11 +494,11 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 	
 	if( channel == 1 ){
 		uchar *left_gray_1d_arr_for_mst;
-		if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, info, mst_pre_mdf)) )
+		if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, info, channel, mst_pre_mdf)) )
 		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
 		mst.set_img(left_gray_1d_arr_for_mst);
 	}else{
-		int *left_color_1d_for_3_mst = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, mst_pre_mdf);
+		int *left_color_1d_for_3_mst = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, channel, mst_pre_mdf);
 		uchar *left_color_1d_arr_uchar = int_1d_color_to_uchar_1d_color(left_color_1d_for_3_mst, node_c);
 		mst.set_img(left_color_1d_arr_uchar);
 	}
@@ -528,7 +528,7 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 		cwz_timer::time_display("Right eye image cost_agt");
 
 	cwz_timer::start();
-	uchar *best_disparity = mst.pick_best_dispairty();
+	CWZDISPTYPE *best_disparity = mst.pick_best_dispairty();
 	if( inverse == false )
 		cwz_timer::time_display("Left eye image pick best disparity");
 	else
@@ -538,18 +538,18 @@ uchar *cwz_dmap_generate(cl_context &context, cl_device_id &device, cl_program &
 		取得深度圖後可以做median filtering
 		apply_cl_color_img_mdf<uchar>(..., bool is_apply_median_filtering_or_not)
 	************************************************************************/
-	uchar *final_dmap;
-	if( !(final_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, best_disparity, info, depth_post_mdf)) )
+	CWZDISPTYPE *final_dmap;
+	if( !(final_dmap = apply_cl_color_img_mdf<CWZDISPTYPE>(context, device, program, err, best_disparity, info, 1, depth_post_mdf)) )
 	{ printf("dmap median filtering failed.\n"); return 0; }
 	return final_dmap;
 }
-bool *detect_occlusion(uchar *left_depth, uchar *right_depth, int h, int w, int node_amt, int th = 0){
+bool *detect_occlusion(CWZDISPTYPE *left_depth, CWZDISPTYPE *right_depth, int h, int w, int node_amt, int th = 0){
 	bool *mask = new bool[node_amt];
 	memset(mask, true, sizeof(bool) * node_amt);
 
 	bool **left_mask = map_1d_arr_to_2d_arr<bool>(mask , h, w);
-	uchar **left_2d  = map_1d_arr_to_2d_arr<uchar>(left_depth , h, w);
-	uchar **right_2d = map_1d_arr_to_2d_arr<uchar>(right_depth, h, w);
+	CWZDISPTYPE **left_2d  = map_1d_arr_to_2d_arr<CWZDISPTYPE>(left_depth , h, w);
+	CWZDISPTYPE **right_2d = map_1d_arr_to_2d_arr<CWZDISPTYPE>(right_depth, h, w);
 	
 	for(int y=0 ; y<h ; y++){
 		for(int x=0 ; x<w ; x++){
@@ -572,7 +572,7 @@ bool *detect_occlusion(uchar *left_depth, uchar *right_depth, int h, int w, int 
 
 	return mask;
 }
-void calc_new_cost_after_left_right_check(float *left_agt, uchar *left_dmap, bool *left_mask, match_info &info){
+void calc_new_cost_after_left_right_check(float *left_agt, CWZDISPTYPE *left_dmap, bool *left_mask, match_info &info){
 	int total_len = info.node_c * info.max_x_d;
 
 	memset(left_agt, 0, sizeof(float) * total_len);
@@ -582,7 +582,7 @@ void calc_new_cost_after_left_right_check(float *left_agt, uchar *left_dmap, boo
 		}
 	}
 }
-uchar* refinement(uchar *left_dmap, uchar *right_dmap, cwz_mst &mstL, cwz_mst &mstR, match_info &info, bool applyTreeRefine = doTreeRefinement){
+CWZDISPTYPE* refinement(CWZDISPTYPE *left_dmap, CWZDISPTYPE *right_dmap, cwz_mst &mstL, cwz_mst &mstR, match_info &info, bool applyTreeRefine = doTreeRefinement){
 	int w = info.img_width;
 	int h = info.img_height;
 	if(applyTreeRefine){
@@ -592,7 +592,7 @@ uchar* refinement(uchar *left_dmap, uchar *right_dmap, cwz_mst &mstL, cwz_mst &m
 		return mstL.pick_best_dispairty();
 	}
 	bool *left_mask = detect_occlusion(left_dmap, right_dmap, h, w, info.node_c, 0);
-	uchar *refined_dmap = new uchar[w*h];
+	CWZDISPTYPE *refined_dmap = new CWZDISPTYPE[w*h];
 	for(int i=0 ; i<w*h ; i++){
 		if(left_mask[i] == false)
 			refined_dmap[i] = 0;
@@ -601,8 +601,8 @@ uchar* refinement(uchar *left_dmap, uchar *right_dmap, cwz_mst &mstL, cwz_mst &m
 	}
 	return refined_dmap;
 }
-uchar *cwz_up_sampling(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
-						 cv::Mat left_b, cwz_mst &mstL_b, match_info &info, match_info &sub_info, uchar *disparity_map, 
+CWZDISPTYPE *cwz_up_sampling(cl_context &context, cl_device_id &device, cl_program &program, cl_int &err,
+						 cv::Mat left_b, cwz_mst &mstL_b, match_info &info, match_info &sub_info, CWZDISPTYPE *disparity_map, 
 						 int down_sample_pow, int disparity_to_img_len_pow, bool do_mst_mdf, bool do_dmap_mdf)
 {
 	int channel = upsampling_mst_channel;
@@ -613,11 +613,11 @@ uchar *cwz_up_sampling(cl_context &context, cl_device_id &device, cl_program &pr
 	if(channel == 1){
 		uchar *left_gray_1d_arr  = int_1d_arr_to_gray_arr(left_color_1d_arr , info.node_c);
 		uchar *left_gray_1d_arr_for_mst;
-		if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, info, do_mst_mdf)) )
+		if( !(left_gray_1d_arr_for_mst = apply_cl_color_img_mdf<uchar>(context, device, program, err, left_gray_1d_arr, info, channel, do_mst_mdf)) )
 		{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
 		mstL_b.set_img(left_gray_1d_arr_for_mst);
 	}else{
-		int *left_color_1d_for_3_mst = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, do_mst_mdf);
+		int *left_color_1d_for_3_mst = apply_cl_color_img_mdf<int>(context, device, program, err,  left_color_1d_arr, info, channel, do_mst_mdf);
 		uchar *left_color_1d_arr_uchar = int_1d_color_to_uchar_1d_color(left_color_1d_for_3_mst, info.node_c);
 		mstL_b.set_img(left_color_1d_arr_uchar);
 	}
@@ -639,7 +639,7 @@ uchar *cwz_up_sampling(cl_context &context, cl_device_id &device, cl_program &pr
 				int x = s_x * down_sample_pow;
 				int s_i = s_y * sub_info.img_width + s_x;
 				int idx    = ((y + cen_ofset) * info.img_width + (x + cen_ofset)) * info.max_x_d;
-				int best_d = disparity_map[ s_i ] * (info.max_x_d / sub_info.max_x_d);
+				CWZDISPTYPE best_d = disparity_map[ s_i ] * (info.max_x_d / sub_info.max_x_d);
 
 				if(best_d > 2)
 					for(int d=0 ; d < info.max_x_d ; d++){
@@ -649,12 +649,12 @@ uchar *cwz_up_sampling(cl_context &context, cl_device_id &device, cl_program &pr
 	}
 	cwz_timer::time_display("upsampling calculate new cost volume");
 	//cost aggregate
-	uchar *upsampled_dmap;
+	CWZDISPTYPE *upsampled_dmap;
 	mstL_b.cost_agt();
 	cwz_timer::start();
 	upsampled_dmap = mstL_b.pick_best_dispairty();
 	cwz_timer::time_display("upsampling pick_best_dispairty");
-	if( !(upsampled_dmap = apply_cl_color_img_mdf<uchar>(context, device, program, err, upsampled_dmap, info, do_dmap_mdf)) )
+	if( !(upsampled_dmap = apply_cl_color_img_mdf<CWZDISPTYPE>(context, device, program, err, upsampled_dmap, info, 1, do_dmap_mdf)) )
 	{ printf("left_gray_1d_arr_for_mst median filtering failed.\n"); return 0; }
 	return upsampled_dmap;
 }

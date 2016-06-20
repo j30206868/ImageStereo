@@ -27,6 +27,7 @@ const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
 const bool depth_post_mdf = true;
 
+typedef int CWZDISPTYPE;
 
 #define CWZ_SHOW_LEFT_DMAP false
 #define CWZ_SHOW_RIGHT_DMAP false

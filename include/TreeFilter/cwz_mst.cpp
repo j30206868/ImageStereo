@@ -80,7 +80,7 @@ void cwz_mst::init(int _h, int _w, int _ch, int max_x_dis, int max_y_dis){
 	for(int i=0 ; i<IntensityLimit ; i++){ histogram[i] = 0; }
 
 	this->agt_result = new float[ node_amt * max_x_disparity ];
-	this->best_disparity = new TEleUnit[node_amt];
+	this->best_disparity = new CWZDISPTYPE[node_amt];
 
 	for(int i=0 ; i<IntensityLimit ; i++){
 		if(cwz_mst::setWtoOne)
@@ -266,7 +266,7 @@ void cwz_mst::cost_agt(float *match_cost_result){
 		}
 	}
 }
-TEleUnit *cwz_mst::pick_best_dispairty(){
+CWZDISPTYPE *cwz_mst::pick_best_dispairty(){
 	for(int i=0 ; i<this->node_amt ; i++){
 		int i_ = i * max_x_disparity;
 

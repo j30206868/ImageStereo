@@ -53,8 +53,8 @@ public:
 	uchar *right_gray_1d_arr;
 
 	bool doGuildFiltering;
-	uchar *left_dmap;
-	uchar *right_dmap;
+	CWZDISPTYPE *left_dmap;
+	CWZDISPTYPE *right_dmap;
 
 	cl_match_elem *left_cwz_img;
 	cl_match_elem *right_cwz_img;
@@ -67,8 +67,8 @@ public:
 	void set_left_right(cv::Mat left, cv::Mat right);
 	void filtering();
 	void compute_cwz_img();
-	uchar *generate_left_dmap();
-	uchar *generate_right_dmap();
+	CWZDISPTYPE *generate_left_dmap();
+	CWZDISPTYPE *generate_right_dmap();
 };
 
 
@@ -84,7 +84,7 @@ private:
 	cl_int err;
 
 	int down_sample_pow;
-	uchar *sub_disparity_map;
+	CWZDISPTYPE *sub_disparity_map;
 
 	bool do_mst_mdf;
 	bool do_dmap_mdf;
@@ -98,16 +98,16 @@ private:
 	int *left_color_1d_for_3_mst;
 	uchar *left_color_1d_arr_uchar;
 
-	uchar *upsampled_dmap;
+	CWZDISPTYPE *upsampled_dmap;
 
 public:
 	cwz_mst mst_b;
 
 	void init(cl_context &_context, cl_device_id &_device, cl_program &_program, cl_int &_err,
-		       int _down_sample_pow, cv::Mat img_b, match_info &_info, match_info &_sub_info, uchar *_sub_disparity_map);
+		       int _down_sample_pow, cv::Mat img_b, match_info &_info, match_info &_sub_info, CWZDISPTYPE *_sub_disparity_map);
 	void setup_mst_img();
-	void set_sub_disparity_map(uchar *_sub_disparity_map);
-	uchar * upsampling();
+	void set_sub_disparity_map(CWZDISPTYPE *_sub_disparity_map);
+	CWZDISPTYPE * upsampling();
 	
 };
 
@@ -125,10 +125,10 @@ private:
 
 	bool *left_mask_1d;
 	bool **left_mask_2d;
-	uchar *left_dmap_1d;
-	uchar *right_dmap_1d;
-	uchar **left_dmap_2d;
-	uchar **right_dmap_2d;
+	CWZDISPTYPE *left_dmap_1d;
+	CWZDISPTYPE *right_dmap_1d;
+	CWZDISPTYPE **left_dmap_2d;
+	CWZDISPTYPE **right_dmap_2d;
 	
 	uchar *left_edge; 
 
@@ -137,14 +137,14 @@ public:
 	static int MODE_TREE;
 	static int MODE_SCANLINE_FILL;
 
-	void init(cwz_mst &_mst, match_info &_info, uchar *_left_dmap_1d, uchar *_right_dmap_1d, int _occlusion_threshold = defaultOcclusionTh);
+	void init(cwz_mst &_mst, match_info &_info, CWZDISPTYPE *_left_dmap_1d, CWZDISPTYPE *_right_dmap_1d, int _occlusion_threshold = defaultOcclusionTh);
 	void init(cwz_mst &_mst, match_info &_info, int _occlusion_threshold = 0);
 	void set_left_edge_map(uchar *_left_edge);
-	void set_left_right_dmap_value(uchar *left_dmap, uchar *right_dmap);
+	void set_left_right_dmap_value(CWZDISPTYPE *left_dmap, CWZDISPTYPE *right_dmap);
 
 	void detect_occlusion();
 	void calc_new_cost_after_left_right_check();
-	uchar *refinement(int mode = doTreeRefinement);
+	CWZDISPTYPE *refinement(int mode = doTreeRefinement);
 };
 
 #endif

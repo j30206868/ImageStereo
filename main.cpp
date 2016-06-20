@@ -34,7 +34,7 @@ void show_img_diff_with_former(cv::Mat &lastLm, cv::Mat &lastRm, cv::Mat &left, 
 
 int main()
 {
-	const int down_sample_pow = 2;
+	const int down_sample_pow = 3;
 	/*******************************************************
 						OpenCL context setup
 	*******************************************************/
@@ -90,9 +90,10 @@ int main()
 	cwz_lth_proc left_th_proc;
 	left_th_proc.init(sub_info.img_width, sub_info.img_height);
 	
-	uchar *left_dmap;
-	uchar *right_dmap;
-	uchar *refined_dmap;
+	CWZDISPTYPE *left_dmap;
+	CWZDISPTYPE *right_dmap;
+	CWZDISPTYPE *refined_dmap;
+	uchar *final_dmap = new uchar[sub_info.node_c];
 
 	int frame_count = 1;
 
@@ -205,15 +206,19 @@ int main()
 					refined_dmap[i] = 0;
 				}
 			}
+			
+			//for(int i=0 ; i<sub_info.node_c ; i++)
+			//	final_dmap[i] = refined_dmap[i];
+			
+			//enhanceDMap(final_dmap, sub_info);
 
-			enhanceDMap(refined_dmap, sub_info);
-			write_cv_img(frame_count, dmap_out_fname, refined_dmap, sub_info.img_height, sub_info.img_width, CV_8UC1);
-			if(CWZ_SHOW_LEFT_DMAP)
+			//write_cv_img(frame_count, dmap_out_fname, final_dmap, sub_info.img_height, sub_info.img_width, CV_8SC1);
+			/*if(CWZ_SHOW_LEFT_DMAP)
 				show_cv_img("left_dmap", left_dmap, sub_info.img_height, sub_info.img_width, 1, false);
 			if(CWZ_SHOW_RIGHT_DMAP)
-				show_cv_img("right_dmap", right_dmap, sub_info.img_height, sub_info.img_width, 1, false);
+				show_cv_img("right_dmap", right_dmap, sub_info.img_height, sub_info.img_width, 1, false);*/
 			//顯示深度影像 並在window標題加上frame_count編號
-			show_cv_img(frame_count, "深度影像", refined_dmap, sub_info.img_height, sub_info.img_width, 1, false);
+			//show_cv_img(frame_count, "深度影像", final_dmap, sub_info.img_height, sub_info.img_width, 1, false);
 
 			dmap_generator.mst_L.reinit();
 			dmap_generator.mst_R.reinit();

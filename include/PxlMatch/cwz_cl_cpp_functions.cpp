@@ -137,6 +137,7 @@ int apply_cl_cost_match(cl_context &context, cl_device_id &device, cl_program &p
 
 	if(err != CL_SUCCESS ){
 		std::cerr << "Can't run kernel or read back data\n";	
+		std::cout << getErrorString(err) << std::endl;
 	}
 
 	clReleaseKernel(matcher);

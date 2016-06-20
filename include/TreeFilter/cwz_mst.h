@@ -30,14 +30,14 @@ public:
 	//
 	void cost_agt();
 	void cost_agt(float *match_cost_result);
-	TEleUnit* pick_best_dispairty();
+	CWZDISPTYPE* pick_best_dispairty();
 	//profiling
 	void mst();
 	void profile_mst();
 	//for reuse
 	void reinit();
 
-	TEleUnit *best_disparity;
+	CWZDISPTYPE *best_disparity;
 private:
 	int findset(int i);
 

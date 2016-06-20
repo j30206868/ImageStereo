@@ -285,9 +285,19 @@ static void MouseCallBackFunc(int event, int x, int y, int flags, void* userdata
 		 img_and_title *mydata = ((img_and_title *)userdata);
 		 cv::Mat cloneImg = mydata->img.clone();
 
-		 int pixelcolor = cloneImg.at<uchar>(y, x);
 		 char pixel[5];
-		 sprintf(pixel, "%i", pixelcolor);
+
+		 cv::Scalar pencolor;
+		 if(cloneImg.type() == CV_8UC3){
+			 pencolor = cv::Scalar(255, 0, 0);
+			sprintf(pixel, "%i, %i, %i", cloneImg.at<uchar>(y, x), cloneImg.at<uchar>(y, x+1), cloneImg.at<uchar>(y, x+2));
+		 }else if(cloneImg.type() == CV_8UC1){
+			 pencolor = cv::Scalar(255);
+			 sprintf(pixel, "%i", cloneImg.at<uchar>(y, x));
+		 }else{
+			printf("CV Window MouseCallBackFunc: no this image type.\n");
+		 }
+
 		 cv::putText(cloneImg, pixel, cv::Point(x+10, y+10), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255), 2);
 		 std::stringstream sstm;
 		 sstm << "(" << x << "," << y << ")";
