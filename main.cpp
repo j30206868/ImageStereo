@@ -18,23 +18,25 @@
 //const char* RightIMGName = "Dataset/dolls/dolls2.png";
 //const char* LeftIMGName  = "Dataset/structure/struct_left.bmp"; 
 //const char* RightIMGName = "Dataset/structure/struct_right.bmp";*/
-const char* LeftIMGName  = "ImgSeries/left01.bmp"; 
-const char* RightIMGName = "ImgSeries/right01.bmp";
+const char* LeftIMGName  = "ImgSeries/left04.png"; 
+const char* RightIMGName = "ImgSeries/right04.png";
 
 const char* dmap_out_fname = "ImgSeries/dmap_";
 
 const char *pxlmatch_kernel_path = "./include/PxlMatch/test.cl";
  
-void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_num);
+void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, const char *file_ext, int frame_num);
 void apply_opencv_stereoSGBM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap, match_info info);
 void show1dGradient(const char *str, float *gradient_float, int h, int w);
 void showEdge(uchar *left_g, uchar *right_g, match_info &info);
 void enhanceDMap(uchar *dmap, match_info &info);
 void show_img_diff_with_former(cv::Mat &lastLm, cv::Mat &lastRm, cv::Mat &left, cv::Mat &right, match_info &info);
 
+void showLeftWithDispValue(std::string title, cv::Mat left, CWZDISPTYPE *dmap);
+
 int main()
 {
-	const int down_sample_pow = 3;
+	const int down_sample_pow = 1;
 	/*******************************************************
 						OpenCL context setup
 	*******************************************************/
@@ -63,8 +65,8 @@ int main()
 	match_info sub_info;
 	sub_info.img_height = sub_h; 
 	sub_info.img_width  = sub_w; 
-	sub_info.max_x_d = sub_w / max_d_to_img_len_pow; 
-	sub_info.max_y_d = sub_h / max_d_to_img_len_pow; 
+	sub_info.max_x_d = 300; 
+	sub_info.max_y_d = 300; 
 	sub_info.node_c  = sub_h * sub_w;
 	sub_info.th = 1;
 	sub_info.printf_match_info("縮小影像資訊");
@@ -72,8 +74,8 @@ int main()
 	match_info info;
 	info.img_height = left_b.rows; 
 	info.img_width = left_b.cols; 
-	info.max_y_d = info.img_height / max_d_to_img_len_pow; 
-	info.max_x_d = info.img_width  / max_d_to_img_len_pow; 
+	info.max_y_d = 300; 
+	info.max_x_d = 300; 
 	info.node_c = info.img_height * info.img_width;
 	info.th = 1;
 
@@ -90,9 +92,9 @@ int main()
 	cwz_lth_proc left_th_proc;
 	left_th_proc.init(sub_info.img_width, sub_info.img_height);
 	
-	CWZDISPTYPE *left_dmap;
-	CWZDISPTYPE *right_dmap;
-	CWZDISPTYPE *refined_dmap;
+	CWZDISPTYPE *left_dmap = NULL;
+	CWZDISPTYPE *right_dmap = NULL;
+	CWZDISPTYPE *refined_dmap = NULL;
 	uchar *final_dmap = new uchar[sub_info.node_c];
 
 	int frame_count = 1;
@@ -108,7 +110,8 @@ int main()
 		show_cv_img("右影像", right.data, right.rows, right.cols, 3, false);
 
 		if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::MEDTHO_CV_SGNM){
-			cv::Mat refinedDMap(sub_h, sub_w, CV_8UC1);
+			//cv::Mat refinedDMap(sub_h, sub_w, CV_8UC1);
+			cv::Mat refinedDMap;
 			apply_opencv_stereoSGBM(left, right, refinedDMap, sub_info);
 			//把黑色之外地方的深度全部歸零
             /*uchar *left_color_arr = left.data;
@@ -136,6 +139,19 @@ int main()
             //}
 			write_cv_img(frame_count, dmap_out_fname, refinedDMap);
 			show_cv_img(frame_count, "深度影像", refinedDMap, false);
+
+			if(refined_dmap != NULL){
+				delete[] refined_dmap;
+				refined_dmap = NULL;
+			}
+
+			refined_dmap = new CWZDISPTYPE[sub_info.node_c];
+			short *cvdata = (short *)refinedDMap.data;
+			for(int i=0 ; i<sub_info.node_c ; i++){
+				refined_dmap[i] = cvdata[i];
+			}
+
+			showLeftWithDispValue("左深度影像", left, refined_dmap);
 			//cv::imshow("stereoSGBM",refinedDMap);
 		}else if((cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE || 
 				  cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_TREE_NO_REFINE) || 
@@ -166,7 +182,7 @@ int main()
 			if( !(left_dmap = dmap_generator.generate_left_dmap()) )
 			{printf( "cwz_dmap_generate left_dmap failed...!" );return 0;}
 			cwz_timer::time_display("- generate left map -");
-
+			 
 			cwz_timer::start();
 			if( !(right_dmap = dmap_generator.generate_right_dmap()) )
 			{printf( "cwz_dmap_generate right_dmap failed...!" );return 0;}
@@ -174,7 +190,7 @@ int main()
 		
 			uchar *left_edge = left_th_proc.do_sqr(dmap_generator.left_gray_1d_arr);
 			//cwz_mst::updateWtoOne(true);
-			cwz_mst::updateSigma(cwz_mst::sigma * 4);
+			//cwz_mst::updateSigma(cwz_mst::sigma / 2);
 			cwz_timer::start();
 			if(cwz_loop_ctrl::Mode == cwz_loop_ctrl::METHOD_FILL_SCANLINE){
 				dmap_ref.set_left_edge_map( left_th_proc.do_sqr(dmap_generator.left_gray_1d_arr) );
@@ -186,7 +202,7 @@ int main()
 			}
 			cwz_timer::time_display("- calc_new_cost_after_left_right_check -");
 			//cwz_mst::updateWtoOne(cwz_mst::setWtoOne);
-			cwz_mst::updateSigma(cwz_mst::sigma / 4);
+			//cwz_mst::updateSigma(cwz_mst::sigma * 2);
 
 			/*if(down_sample_pow > 1){
 				//do up sampling
@@ -201,14 +217,20 @@ int main()
 			cwz_timer::t_time_display("total");
 
 			//把黑色之外地方的深度全部歸零
-			for(int i=0 ; i<sub_info.node_c ; i++){
-				if(dmap_generator.left_gray_1d_arr[i] >= 170){
+			/*for(int i=0 ; i<sub_info.node_c ; i++){
+				if(dmap_generator.left_gray_1d_arr[i] >= 110){
 					refined_dmap[i] = 0;
 				}
+			}*/
+			int min_disp = sub_info.max_x_d - 255;
+			if(min_disp < 0)
+				min_disp = 0;
+			for(int i=0 ; i<sub_info.node_c ; i++){
+				if(refined_dmap[i] > min_disp)
+					final_dmap[i] = refined_dmap[i] - min_disp;
+				else 
+					final_dmap[i] = 0;
 			}
-			
-			//for(int i=0 ; i<sub_info.node_c ; i++)
-			//	final_dmap[i] = refined_dmap[i];
 			
 			//enhanceDMap(final_dmap, sub_info);
 
@@ -218,7 +240,8 @@ int main()
 			if(CWZ_SHOW_RIGHT_DMAP)
 				show_cv_img("right_dmap", right_dmap, sub_info.img_height, sub_info.img_width, 1, false);*/
 			//顯示深度影像 並在window標題加上frame_count編號
-			//show_cv_img(frame_count, "深度影像", final_dmap, sub_info.img_height, sub_info.img_width, 1, false);
+			show_cv_img(frame_count, "深度影像", final_dmap, sub_info.img_height, sub_info.img_width, 1, false);
+			showLeftWithDispValue("左深度影像", left, refined_dmap);
 
 			dmap_generator.mst_L.reinit();
 			dmap_generator.mst_R.reinit();
@@ -252,11 +275,11 @@ int main()
 		frame_count++;
 		
 		if(down_sample_pow == 1){
-			read_image(left, "ImgSeries/left", frame_count);
-			read_image(right, "ImgSeries/right", frame_count);
+			read_image(left, "ImgSeries/left", ".png", frame_count);
+			read_image(right, "ImgSeries/right", ".png", frame_count);
 		}else{
-			read_image(left_b, "ImgSeries/left", frame_count);
-			read_image(right_b, "ImgSeries/right", frame_count);
+			read_image(left_b, "ImgSeries/left", ".png", frame_count);
+			read_image(right_b, "ImgSeries/right", ".png", frame_count);
 			cv::resize(left_b, left, cv::Size(left_b.cols/down_sample_pow, left_b.rows/down_sample_pow));
 			cv::resize(right_b, right, cv::Size(right_b.cols/down_sample_pow, right_b.rows/down_sample_pow));
 		}
@@ -269,12 +292,63 @@ int main()
 
 	return 0;
 }
-void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, int frame_num){
+
+static struct show_left_img{
+	cv::Mat img;
+	CWZDISPTYPE *dmap;
+	int w;
+	int h;
+	std::string title;
+};
+static void MouseCallBackFunc(int event, int x, int y, int flags, void* userdata)
+{
+
+	if ( event == cv::EVENT_MOUSEMOVE )
+     {
+          //std::cout << "Mouse move over the window - position (" << x << ", " << y << ")" << std::endl;
+		  //printf("Pixel: %d\n", lastIndexedImg.at<uchar>(y, x));
+
+		 show_left_img *mydata = ((show_left_img *)userdata);
+		 cv::Mat cloneImg = mydata->img.clone();
+
+		 char pixel[5];
+
+		 cv::Scalar pencolor;
+
+		 pencolor = cv::Scalar(255, 0, 0);
+
+		 int idx = y * mydata->w + x;
+		 if(x < mydata->w && y < mydata->h){
+			sprintf(pixel, "%i", mydata->dmap[idx]);
+			cv::putText(cloneImg, pixel, cv::Point(x+10, y+10), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255), 2);
+			 std::stringstream sstm;
+			 sstm << "(" << x << "," << y << ")";
+			 cv::putText(cloneImg, sstm.str().c_str(), cv::Point(x+10, y+35), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255), 2);
+			 cv::imshow(mydata->title, cloneImg);
+		 }
+		 
+     }
+}
+static show_left_img *mouseCallBackUserData = NULL;
+void showLeftWithDispValue(std::string title, cv::Mat left, CWZDISPTYPE *dmap){
+	mouseCallBackUserData        = new show_left_img();
+	mouseCallBackUserData->img   = left;
+	mouseCallBackUserData->w     = left.cols;
+	mouseCallBackUserData->h     = left.rows;
+	mouseCallBackUserData->dmap  = dmap;
+	mouseCallBackUserData->title = title;
+	cv::namedWindow(title, CV_WINDOW_FREERATIO);
+	cv::setMouseCallback(title, MouseCallBackFunc, mouseCallBackUserData);
+	cv::imshow(title, left);
+	cv::waitKey(0);
+}
+
+void read_image(cv::Mat &stereo_frame, const char *path_and_prefix, const char*file_ext, int frame_num){
 	std::stringstream sstm;
 	if(frame_num < 10){
-		sstm << path_and_prefix << "0" << frame_num << ".bmp";
+		sstm << path_and_prefix << "0" << frame_num << file_ext;
 	}else{
-		sstm << path_and_prefix << frame_num << ".bmp";
+		sstm << path_and_prefix << frame_num << file_ext;
 	}
 	stereo_frame = cv::imread(sstm.str(), CV_LOAD_IMAGE_COLOR);
 }
@@ -329,12 +403,12 @@ void apply_opencv_stereoSGBM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap
 	sgbm->SADWindowSize = SADWindowSize;
 	sgbm->P1 = 8*cn*SADWindowSize*SADWindowSize;
 	sgbm->P2 = 32*cn*SADWindowSize*SADWindowSize;
-	sgbm->minDisparity = 0;
-	sgbm->numberOfDisparities = numberOfDisparities;
+	sgbm->minDisparity = 96;
+	sgbm->numberOfDisparities = 320;
 	sgbm->uniquenessRatio = 10;
 	sgbm->speckleWindowSize = 100;
 	sgbm->speckleRange = 32;
-	sgbm->disp12MaxDiff = 1;
+	sgbm->disp12MaxDiff = 10;
 
     cv::Mat disp;
 
@@ -342,8 +416,9 @@ void apply_opencv_stereoSGBM(cv::Mat &left, cv::Mat &right, cv::Mat &refinedDMap
     (*sgbm)(left, right, disp);    
     t = cv::getTickCount() - t;
     printf("Time elapsed: %fms\n", t*1000/cv::getTickFrequency());
-
-    disp.convertTo(refinedDMap, CV_8U, 255/(numberOfDisparities*16.));
+	
+    //disp.convertTo(refinedDMap, CV_8U, 255/(numberOfDisparities*16.));
+	disp.convertTo(refinedDMap, CV_16U, 1.0/16);
 }
 void enhanceDMap(uchar *dmap, match_info &info){
 	for(int idx=0 ; idx<info.node_c ; idx++)

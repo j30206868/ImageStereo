@@ -405,3 +405,72 @@ void writeStrToFile(std::string fname, std::string data){
     myfile << data <<"\n";
     myfile.close();
 }
+void show_cv_img_fullscreen(std::string title, cv::Mat img, bool shouldWait){
+	cvNamedWindow(title.c_str(), CV_WINDOW_FREERATIO);
+	cvMoveWindow(title.c_str(), 0, 0);
+	cvSetWindowProperty(title.c_str(), CV_WINDOW_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+	cv::imshow(title, img);
+	HWND win_handle = FindWindow(0, title.c_str());
+	if (!win_handle)
+	{
+		printf("Failed FindWindow\n");
+	}
+	unsigned int flags = (SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOZORDER);
+	flags &= ~SWP_NOSIZE;
+	unsigned int x = 1366;
+	unsigned int y = 0;
+	unsigned int screen_w = 1024;
+	unsigned int screen_h = 768;
+	SetWindowPos(win_handle, HWND_NOTOPMOST, x, y, screen_w, screen_h, flags);
+	SetWindowLong(win_handle, GWL_STYLE, GetWindowLong(win_handle, GWL_EXSTYLE) | WS_EX_TOPMOST);
+	ShowWindow(win_handle, SW_SHOW);
+
+	if(shouldWait)
+		cvWaitKey(0);
+	else
+		cvWaitKey(10);
+}
+void show_cv_img_fullscreen(std::string title, uchar *pixels, int h, int w, int c, bool shouldWait){
+	cv::Mat img;
+	if(c == 3)
+		img = cv::Mat(h, w, CV_8UC3);
+	else if(c == 1)
+		img = cv::Mat(h, w, CV_8UC1);
+	img.data = pixels;
+	/*cv::namedWindow(title, CV_WINDOW_FREERATIO);
+	cv::imshow(title, img);*/
+
+	cvNamedWindow(title.c_str(), CV_WINDOW_FREERATIO);
+	cvMoveWindow(title.c_str(), 0, 0);
+	cvSetWindowProperty(title.c_str(), CV_WINDOW_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+
+	//cvShowImage(title.c_str(), img);
+	cv::imshow(title, img);
+	//HWND cv_hwnd = (HWND)cvGetWindowHandle("main_win");
+	//if (!cv_hwnd)
+	//{
+	//  printf("Failed cvGetWindowHandle\n");
+	//}
+	//printf("cvGetWindowHandle returned %p\n", *cv_hwnd);
+
+	HWND win_handle = FindWindow(0, title.c_str());
+	if (!win_handle)
+	{
+		printf("Failed FindWindow\n");
+	}
+	//unsigned int flags = (SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER);
+	unsigned int flags = (SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOZORDER);
+	flags &= ~SWP_NOSIZE;
+	unsigned int x = 1366;
+	unsigned int y = 0;
+	unsigned int screen_w = 1024;
+	unsigned int screen_h = 768;
+	SetWindowPos(win_handle, HWND_NOTOPMOST, x, y, screen_w, screen_h, flags);
+	SetWindowLong(win_handle, GWL_STYLE, GetWindowLong(win_handle, GWL_EXSTYLE) | WS_EX_TOPMOST);
+	ShowWindow(win_handle, SW_SHOW);
+
+	if(shouldWait)
+		cvWaitKey(0);
+	else
+		cvWaitKey(10);
+}

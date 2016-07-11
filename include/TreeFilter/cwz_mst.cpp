@@ -354,6 +354,7 @@ void cwz_mst::updateHistogram(){
 				cwz_mst::whistogram[i] = cwz_mst::upbound;
 			}
 		}
+		//printf("[%d] %f\n", i, cwz_mst::whistogram[i]);
 	}
 }
 

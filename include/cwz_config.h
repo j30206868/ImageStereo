@@ -8,7 +8,7 @@ namespace cwz_loop_ctrl{
 
 	//控制目前使用的方法
 	static int M_Key_counter = 0;
-	static int       Mode = 0;
+	static int       Mode = 3;
 	static const int METHOD_TREE = 0;
 	static const int METHOD_TREE_NO_REFINE = 1;
 	static const int METHOD_FILL_SCANLINE = 2;

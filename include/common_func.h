@@ -16,7 +16,7 @@
 #define default_method 1  //tree=1 ; sgbm=2
 #define IntensityLimit 256
 #define doTreeRefinement false
-#define defaultOcclusionTh 10 //其實應該跟max_x有相對關係
+#define defaultOcclusionTh 3 //其實應該跟max_x有相對關係
 #define setWto1 false
 #define max_d_to_img_len_pow 3
 #define mst_channel 3
@@ -27,7 +27,7 @@ const bool img_pre_mdf = false;
 const bool mst_pre_mdf = true;
 const bool depth_post_mdf = true;
 
-typedef int CWZDISPTYPE;
+typedef uchar CWZDISPTYPE;
 
 #define CWZ_SHOW_LEFT_DMAP false
 #define CWZ_SHOW_RIGHT_DMAP false
@@ -187,6 +187,9 @@ void show_cv_img(int index, std::string title, uchar *pixels, int h, int w, int 
 void show_cv_img(int index, std::string title, cv::Mat &img, bool shouldWait = true);
 void show_cv_img(std::string title, uchar *pixels, int h, int w, int c, bool shouldWait = true);
 void show_cv_img(std::string fname, int c, bool shouldWait = true);
+
+void show_cv_img_fullscreen(std::string title, cv::Mat img, bool shouldWait);
+void show_cv_img_fullscreen(std::string title, uchar *pixels, int h, int w, int c, bool shouldWait);
 
 //檔案處理
 bool cleanFile(std::string fname);
